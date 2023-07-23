@@ -358,7 +358,7 @@ const Rate = async (req, res, next) => {
       if (
         !(await Product.findByIdAndUpdate(
           _id,
-          { total_rate, $push: { comments: { account: account._id,name: account.name || 'Ẩn danh', message, rate } } },
+          { total_rate, $push: { comments: { account: account._id, name: account.name || 'Ẩn danh', message, rate } } },
           opts
         ).exec())
       )
@@ -368,7 +368,7 @@ const Rate = async (req, res, next) => {
       session.endSession();
       return responseSuccess({ res, message: config.message.success });
     } catch (error) {
-      console.log("err",error)
+      console.log('err', error);
       await session.abortTransaction();
       session.endSession();
       return responseError({ res, statusCode: 400, message: 'Lỗi không đồng bộ Account và Product' }); //res.status(400).send({ msg: 'Lỗi không đồng bộ Account và Product' });
@@ -446,6 +446,8 @@ const ValidCart = async (req, res, next) => {
 };
 
 const Imports = async (req, res, next) => {
+  console.log('==>' + req.body);
+  console.log(req.body);
   const data = req.body.data; // [{code, quantity, color, price}]
   if (!data) return res.status(400).send({ msg: config.message.err400 });
 
@@ -462,7 +464,7 @@ const Imports = async (req, res, next) => {
       const { code, color, quantity, price } = data[i];
       // console.log("data",data[i])
       const doc = await Product.findOne({ code }).select('colors').exec();
-      
+
       if (!doc) failure.push({ code, quantity, price: Number(price) });
       else {
         var flag = false;
@@ -481,8 +483,8 @@ const Imports = async (req, res, next) => {
       }
     }
 
-    const importBill = new Import({ products: success, admin: req.user._id });
-    if (!(await importBill.save())) throw Error('Không thể lưu import bill');
+    const importProduct = new Import({ products: success, admin: req.query._id });
+    if (!(await importProduct.save())) throw Error('Không thể lưu import product');
 
     await session.commitTransaction();
     session.endSession();
