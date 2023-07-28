@@ -27,24 +27,30 @@ const getUser = {
   })
 };
 
-const updateUser = {
+const updateSupplier = {
   params: Joi.object().keys({
-    userId: Joi.required().custom(objectId)
+    supplierId: Joi.required().custom(objectId)
   }),
   body: Joi.object()
     .keys({
-      email: Joi.string().email(),
-      password: Joi.string().custom(password),
+      desc: Joi.string(),
       name: Joi.string(),
+      slug: Joi.string(),
       phone: Joi.string().length(10).pattern(PHONE_REGEX),
-      role: Joi.string().required().min(0).max(30)
+      address: Joi.object()
+        .keys({
+          province: Joi.string().required(),
+          district: Joi.string().required(),
+          address: Joi.string().required()
+        })
+        .required()
     })
     .min(1)
 };
 
-const deleteUser = {
+const deleteSupplier = {
   params: Joi.object().keys({
-    userId: Joi.string().custom(objectId)
+    supplierId: Joi.string().custom(objectId)
   })
 };
 
@@ -52,6 +58,6 @@ module.exports = {
   createUser,
   getUsers,
   getUser,
-  updateUser,
-  deleteUser
+  updateSupplier,
+  deleteSupplier
 };

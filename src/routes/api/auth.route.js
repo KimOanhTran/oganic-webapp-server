@@ -7,6 +7,7 @@ const auth = require('../../middlewares/auth');
 
 const router = express.Router();
 router.post('/register', validate.validate(authValidation.register), authController.register);
+router.post('/register-employee', validate.validate(authValidation.registerEmployee), authController.registerEmployee);
 router.get('/profile', auth(), authController.getProfile);
 router.post('/login', authController.login);
 router.post('/logout', validate.validate(authValidation.logout), authController.logout);

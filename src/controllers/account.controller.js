@@ -243,17 +243,20 @@ const OTPRequest = async (req, res, next) => {
       return res.status(400).send({ msg: config.message.errRequest + '. Email/Phone này đang chờ được xác nhận. ' });
     if (config.regex.email.test(email_or_phone)) {
       const code = RandomCode();
-      const test1 = await sender.SendMail(email_or_phone, 'Xác nhận Email', `Mời xác nhận email của bạn với mã code: ${code}`);
+      const test1 = await sender.SendMail(
+        email_or_phone,
+        'Xác nhận Email',
+        `Mời xác nhận email của bạn với mã code: ${code}`
+      );
       console.log('otp', email_or_phone, code);
-      console.log("test1",test1)
+      console.log('test1', test1);
       codeCache.set(email_or_phone, code, config.message.waitVerifyTimeout);
       return res.send({ msg: `Mã xác nhận đã được gửi tới, Bạn có ${config.message.waitVerifyTimeout}s để xác nhận.` });
     } else if (config.regex.phone.test(email_or_phone)) {
-
       const code = RandomCode();
-      const newPhone = Phoneformat(email_or_phone)
+      const newPhone = Phoneformat(email_or_phone);
       const test = await sender.SendSMS(`Confirm your phone, code: ${code}`, newPhone);
-      console.log("test",test)
+      console.log('test', test);
       console.log('otp', email_or_phone, code);
       codeCache.set(email_or_phone, code, config.message.waitVerifyTimeout);
       res.send({ msg: `Confirm email code was sent, You have ${config.message.waitVerifyTimeout}s to confirm it.` });
@@ -270,13 +273,11 @@ const SendNotificationsFunc = async (user, message) => {
 };
 const Phoneformat = (phone) => {
   if (!!phone && config.regex.phone.test(phone)) {
-      if (phone[0] == "0")
-          phone = "+84" + phone.slice(1)
-      else if (phone[0] != "+")
-          phone = "+" + phone
+    if (phone[0] == '0') phone = '+84' + phone.slice(1);
+    else if (phone[0] != '+') phone = '+' + phone;
   }
-  return phone
-}
+  return phone;
+};
 const SendNotification = async (req, res) => {
   try {
     const user = req.body.user;
@@ -358,8 +359,11 @@ const getUser = catchAsync(async (req, res) => {
 });
 
 const updateUser = catchAsync(async (req, res) => {
-  const user = await userService.updateUserById(req.params.userId, req.body);
-  res.send(user);
+  const updatedUser = await userService.updateUserById(req.params.userId, req.body);
+  if (!updatedUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+  res.send({ msg: 'Thành công', user: updatedUser });
 });
 const fromObject = function (params, skipobjects, prefix) {
   if (skipobjects === void 0) {

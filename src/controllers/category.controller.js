@@ -14,10 +14,17 @@ var categoryInfosTemp = {};
 var categoryTempExist = false;
 var categoryTemp = {};
 var categorySurfacesTemp = [];
+//Đây là một hàm bất đồng bộ không nhận bất kỳ tham số nào. Hàm này được
+//sử dụng để yêu cầu danh sách các danh mục từ csdl và xử lý dl sau đó
 const RequestCategory = async () => {
   try {
+    //Đoạn mã này sử dụng pt find() để lấy danh sách các danh mục từ csdl.
+    //vì phương thức này trả về một promise nên sử dụng từ khóa await để chờ kq trả về
+    //trước khi gán danh sách các danh mục vào biến list
     var list = await Category.find();
     // console.log(list)
+    //Khời tạo các biên tạm thời để lưu trữ dl, dl danh sách danh mục được
+    //xử lý để chuẩn bị cho việc sử dụng trong ứng dụng
     var temp = {};
     var infos = {};
     var surfaces = [];
@@ -43,10 +50,13 @@ const RequestCategory = async () => {
     return false;
   }
 };
+//Đoạn mã trên để lấy danh sách các giá trị cơ bản từ các đối tượng danh mục trong csdl
+//và gửi phản hồi chứa các giá trị cơ bản đó về cho người dùng
 const List = catchAsync(async (req, res, next) => {
   try {
     const list = await Category.find();
     const arr = [];
+    //list.forEach(c): lặp qua danh sách các đối tượng danh mục và thực hiện các bước xử lý
     list.forEach((c) => {
       console.log(c.surface);
       arr.push(c.surface);
@@ -62,13 +72,17 @@ const getACategory = catchAsync(async (req, res, next) => {
   try {
     const name = req.query.name;
     const _id = req.query._id;
-
+    //Nếu danh mục chưa được chuẩn bị hàm sẽ gọi hàm RequestCategory() để cb danh sách danh mục.
+    //Sau khi hàm requestCategory: tải dữ liệu hoàn tất thì categoruTempExist sẽ được đặt thành true
     if (!categoryTempExist) await RequestCategory();
+    //Nếu danh mục vẫn chưa hoàn tất thì sẽ ném ra lỗi
     if (!categoryTempExist) throw Error();
-
+    //Nếu tham số name tồn tại và trùng với tên trong csdl hàm sẽ trả về
+    //thông tin của danh mục đó thông qua đối tượng JSON
     if (!!name && categoryInfosTemp.hasOwnProperty(name)) {
       return res.send({ msg: config.message.success, data: categoryInfosTemp[name] });
     }
+    //Tương như tham số name thì tham số _id
     if (!!_id && categoryInfosTemp.hasOwnProperty(_id)) {
       return res.send({ msg: config.message.success, data: categoryInfosTemp[_id] });
     }
@@ -94,21 +108,26 @@ const ValidSpecs = function (category, specs) {
   }
   return new_specs;
 };
+
+//catchAsync(async(req, res, next)): hàm trung gian catchAsync được sử dụng để bắt lỗi trong hàm xử lý yêu cầu. Nếu có bất kỳ lỗi nào xảu ra trong hàm này, nó sẽ chuyển nó đến hàm xử lý lỗi để xử lý
 const createCategory = catchAsync(async (req, res, next) => {
   try {
+    //khai báo các biến để lưu trữ các giá trị từ yêu cầu POST gửi đến
     const name = req.body.name;
     const slug = req.body.slug;
     const image_base64 = req.body.image_base64;
     const icon_base64 = req.body.icon_base64;
     const specsModel = req.body.specsModel; // [{name: "Ram", values: [{value: "2gb"}, {value: "4gb"}]}]
-    // @ts-ignore
+    // @ts-ignore: hàm kiểm tra dữ liệu trả về có hợp lệ hay không nếu một trong các dl trả về không hợp lệ hàm sẽ trả về lỗi HTTP request
     if (!slug || !name || !image_base64 || !specsModel || !Category.checkSpecsModel(specsModel))
       return responseError({ res, statusCode: 400, message: config.message.err400 });
 
+    //Tải lên hình ảnh và biểu tượng: dl hình ảnh và biểu tượng được chuyển thành các tệp hình ảnh dựa trễn chuỗi base64 và sau đó tải lên lưu trữ
     var img_info = await image.upload(image.base64(image_base64), 'category');
     var icon_info = await image.upload(image.base64(icon_base64), 'category');
     if (!img_info) return responseError({ res, statusCode: 500, message: config.message.errSaveImage });
 
+    //Tạo danh mục
     // Try to save category
     const category = new Category({
       name: name,
@@ -119,6 +138,7 @@ const createCategory = catchAsync(async (req, res, next) => {
       icon_url: icon_info.url,
       slug: slug
     });
+    //Lưu danh mục vừa mới được tạo
     category.save((err, doc) => {
       if (err) return responseError({ res, statusCode: 500, message: config.message.err500 });
       if (!doc) return responseError({ res, statusCode: 400, message: config.message.err400 });

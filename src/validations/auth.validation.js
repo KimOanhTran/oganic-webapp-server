@@ -1,4 +1,4 @@
-const Joi = require('joi');
+const Joi = require('joi'); //dung thu vien joi de xac thuc va kiem tra du lieu dau vao
 const { password } = require('./custom.validation');
 const { PHONE_REGEX } = require('../constants/index');
 
@@ -11,7 +11,15 @@ const register = {
   })
 };
 
-
+const registerEmployee = {
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    phone: Joi.string().length(10).pattern(PHONE_REGEX).required(),
+    password: Joi.string().required().custom(password),
+    name: Joi.string().required().min(5).max(30),
+    role: Joi.string().required().min(0).max(30)
+  })
+};
 
 const logout = {
   body: Joi.object().keys({
@@ -48,6 +56,7 @@ const verifyEmail = {
 
 module.exports = {
   register,
+  registerEmployee,
   logout,
   refreshTokens,
   forgotPassword,

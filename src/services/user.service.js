@@ -18,6 +18,22 @@ const createUser = async (userBody) => {
 };
 
 /**
+ * Create a employee account
+ * @param {Object} userBody
+ * @returns {Promise<User>}
+ */
+const createEmployeeAccount = async (userBody) => {
+  if (await Account.isEmailTaken(userBody.email)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
+  }
+  if (await Account.isPhoneTaken(userBody.phone)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Phone number already exists');
+  }
+  //userBody.role = 'Sale';
+  return Account.create(userBody);
+};
+
+/**
  * Query for users
  * @param {Object} filter - Mongo filter
  * @param {Object} options - Query options
@@ -85,6 +101,7 @@ const deleteUserById = async (userId) => {
 
 module.exports = {
   createUser,
+  createEmployeeAccount,
   queryUsers,
   getUserById,
   getUserByEmailOrPhone,

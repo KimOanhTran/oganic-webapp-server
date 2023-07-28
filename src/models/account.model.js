@@ -57,7 +57,7 @@ const accountSchema = mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ['Customer', 'Sale', 'Admin'],
+        values: ['Customer', 'Sale', 'Admin', 'Warehouse'],
         message: 'Role {VALUE} is not supported'
       },
       default: 'Customer'
