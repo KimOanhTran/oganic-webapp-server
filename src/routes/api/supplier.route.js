@@ -18,5 +18,6 @@ router.patch(
   validate.validate(supplierValidation.updateSupplier),
   supplierController.updateSupplier
 );
+// router.route('/edit/:supplierId').patch(supplierController.updateSupplier);
 router.route('/read').get(supplierController.getASupplier);
 module.exports = router;

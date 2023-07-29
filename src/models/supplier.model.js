@@ -17,6 +17,7 @@ const supplierSchema = mongoose.Schema(
       trim: true,
       lowercase: true
     },
+    products: [{ type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Product' }],
     phone: {
       type: String,
       required: true,

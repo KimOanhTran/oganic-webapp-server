@@ -186,6 +186,7 @@ const Top = async (req, res) => {
 };
 
 const createProduct = catchAsync(async (req, res, next) => {
+  //Lấy thông tin sản phẩm từ phần thân yêu cầu
   const name = req.body.name;
   const code = req.body.code;
   const desc = req.body.desc;
@@ -195,7 +196,8 @@ const createProduct = catchAsync(async (req, res, next) => {
   const sale = req.body.sale;
   const image_base64 = req.body.image_base64;
 
-  // Handle Required Data
+  // Xử lý thông báo lỗi nếu thiếu thông tin bắt buộc thì thông tin bị thiếu
+  //sẽ được thêm vào chuỗi "error" và hàm responseError được gọi với mã trạng thái 400 và thông báo lỗi
   const error = '';
   if (!name) error += config.message.errMissField + '[name]. ';
   if (!code) error += config.message.errMissField + '[code]. ';
@@ -205,20 +207,23 @@ const createProduct = catchAsync(async (req, res, next) => {
   if (!image_base64) error += config.message.errMissField + '[image_base64]. ';
   if (!!error) responseError({ res, statusCode: 400, message: error });
 
+  //Kiểm tra thông tin hình ảnh được tải lên nếu không có sẽ báo lỗi
   const img_info = await image.upload(image.base64(image_base64), 'product_image');
   if (!img_info)
     return responseError({ res, statusCode: 500, message: config.message.errWrongField + '[image_base64]. ' });
 
-  // Handle Category & Specs
+  //Mã sử lý danh mục và thông số sản phẩm.
+  //Nó tìm danh mục trong csdl dựa trên tên danh mục được cung cấp trong category. Nếu không tìm thấy danh mục hàm Response sẽ gửi thông báo lỗi
   let categoryDoc = await Category.findOne({ name: category });
 
   if (!categoryDoc) return responseError({ res, statusCode: 400, message: config.message.err400 });
 
+  //kiểm tra các thông số sản phẩm và xử lý thông qua hàm CateCtl.ValidSpecs
   specs = CateCtl.ValidSpecs(categoryDoc, specs);
 
   if (Object.keys(specs).length == 0) return responseError({ res, statusCode: 400, message: config.message.err400 });
 
-  // const product = new Product({ name, code, desc, price, sale });
+  //Sản phẩm mới được tạo bằng cách khởi tạo đối tượng Product và các thông tin của sản phẩm được đưa vào
   const product = new Product({
     name,
     code,
@@ -230,18 +235,27 @@ const createProduct = catchAsync(async (req, res, next) => {
     image_id: img_info.public_id,
     image_url: img_info.url
   });
+  //Tạo một phiên làm việc mongoDB sử dụng mongoose
   const session = await mongoose.startSession();
+  //Bắt đầu một giao dịch trong phiên làm việc
   session.startTransaction();
   try {
+    //Tạo một đối tượng tùy chọn cho quá trình lưu trữ sản phẩm, trong đó bao gồm phiên làm việc đã tạo
     const opts = { session };
+    //Lưu trữ thông tin sản phẩm vào csdl
     const productDoc = await product.save(opts);
     // @ts-ignore
+    //Thêm sản phẩm mới vào danh mục tương ứng
     categoryDoc.addProduct(productDoc);
+    //Lưu trữ thông tin danh mục với ản phẩm mới được thêm vào csdl
     categoryDoc = await categoryDoc.save();
     if (!productDoc || !categoryDoc) throw Error('Fail');
 
+    //Hoàn thành giao dịch và lưu vào csdl
     await session.commitTransaction();
+    //Kết thúc phiên làm việc
     session.endSession();
+    //Cập nhập lại danh mục
     RequestCategory();
     responseSuccess({ res, message: config.message.success });
   } catch (error) {
@@ -254,6 +268,7 @@ const createProduct = catchAsync(async (req, res, next) => {
 });
 const Update = async (req, res, next) => {
   try {
+    //Lấy thông tin từ phần thân yêu cầu
     const _id = req.body._id;
     const code = req.body.code;
     const name = req.body.name;
@@ -265,18 +280,22 @@ const Update = async (req, res, next) => {
     const image_base64 = req.body.image_base64;
 
     // Get product
+    //Kiểm tra và lấy sản phẩm dựa trên .id hoặc code???Tại sao phải kiểm tra bằng cả id và code
     if (!_id && !code) return responseError({ res, statusCode: 400, message: config.err400 });
 
+    //Kiểm tra và gửi thông báo lỗi nếu không tìm thấy sản phẩm
     let product = await Product.findOne({ $or: [{ _id: _id }, { code: code }] }).select('-comments');
 
     if (!product) return responseError({ res, statusCode: 500, message: config.err500 });
 
+    //Khởi tạo một phiên giao dịch MongoDB
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
       const opts = { session };
 
+      //Cập nhập các trường thông tin của sản phẩm dựa trên thông tin từ phần thân yêu cầu
       enable != undefined ? (product.enable = enable) : (product.enable = product.enable);
       product.name = name || product.name;
       product.desc = desc || product.desc;
@@ -285,31 +304,40 @@ const Update = async (req, res, next) => {
 
       let category;
       if (!!specs) {
+        //Tìm danh mục sản phẩm(tại sao phải tìm danh mục sản phẩm trong list Category vì nếu đã được thêm vào sản phẩm thì cate đó phải tồn tại rồi chứ)
         category = await Category.findOne({ name: product.category });
+        //Kiểm tra và gửi thông báo lỗi nếu không tìm thấy danh mục
         if (!category) return responseError({ res, statusCode: 500, message: config.err500 });
         // @ts-ignore
+        //Xóa sản phẩm khỏi danh mục và cập nhập thông số sản phẩm mới(tại sao phải xóa sản phẩm đó trong danh mục)
         category.delProduct(product);
         product.specs = CateCtl.ValidSpecs(category, specs);
         // @ts-ignore
+        //add lại sản phẩm mới vào danh mục tương ứng
         category.addProduct(product);
       }
 
+      //Nếu có ảnh mới của sản phẩm, hàm sẽ tải lên ảnh và cập nhập thông tin ảnh của sản phẩm
       let img_info;
       const old_image_id = product.image_id;
       if (!!image_base64) {
+        //Tải lên và lấy thông tin của ảnh mới
         img_info = await image.upload(image.base64(image_base64), 'product_color');
+        //Kiểm tra và gửi thông báo lỗi nếu không tải ảnh
         if (!img_info) return responseError({ res, statusCode: 500, message: config.errSaveImage });
         product.image_id = img_info.public_id;
         product.image_url = img_info.url;
       }
 
-      // Save
+      // Lưu sản phẩm và cập nhật danh mục trong cùng một phiên giao dịch
       const productDoc = await product.save(opts);
       const categeryDoc = !!category ? await category.save(opts) : 'temp';
+      // Kiểm tra và gửi thông báo lỗi nếu không lưu đồng bộ sản phẩm và danh mục
       if (!productDoc || !categeryDoc) {
         if (!!img_info) image.destroy(img_info.public_id);
         throw Error();
       } else {
+        //Xóa ảnh cũ (nếu có) và gửi phản hồi thành công nếu không có lỗi
         if (!!img_info) image.destroy(old_image_id);
         await session.commitTransaction();
         session.endSession();
@@ -318,12 +346,14 @@ const Update = async (req, res, next) => {
       }
     } catch (error) {
       console.log(error);
+      //Hủy giao dịch và gửi thông báo lỗi nếu có lỗi không lưu đồng bộ với danh mục
       await session.abortTransaction();
       session.endSession();
       responseError({ res, statusCode: 500, message: 'Lỗi không lưu đồng bộ với category' });
     }
   } catch (err) {
     console.log(err);
+    //Gửi thông báo lỗi nếu có lỗi trong quá trình xử lý
     responseError({ res, statusCode: 500, message: config.err500 });
   }
 };

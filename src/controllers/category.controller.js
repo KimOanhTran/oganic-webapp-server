@@ -93,6 +93,8 @@ const getACategory = catchAsync(async (req, res, next) => {
   }
 });
 
+//Xác thực và lọc các thông số hợp lệ của sản phẩm dựa trên mô hình thông số của danh mục (~category.specsModel)
+//Kết quả là trả về một đối tượng chứa các thông số hợp lệ
 const ValidSpecs = function (category, specs) {
   var new_specs = {};
   for (let i = 0; i < category.specsModel.length; i++) {

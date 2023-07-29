@@ -108,6 +108,7 @@ const createSupplier = catchAsync(async (req, res, next) => {
   try {
     const { name, slug, desc, phone, address } = req.body;
 
+    console.log(req.body);
     // Kiểm tra xem tên đã tồn tại và được cung cấp trong yêu cầu hay chưa
     const isNameTaken = await Supplier.isNameTaken(name, null);
     if (isNameTaken) {
@@ -131,9 +132,14 @@ const createSupplier = catchAsync(async (req, res, next) => {
       slug: slug,
       desc: desc,
       phone: phone,
-      address: address
+      address: {
+        province: address.address.province,
+        district: address.address.district,
+        address: address.address.address
+      }
     });
 
+    console.log(supplier.address);
     // Lưu nhà cung cấp vừa mới được tạo
     const savedSupplier = await supplier.save();
     if (!savedSupplier) {
@@ -210,6 +216,7 @@ const specsModelMerge = (specsModel, newSpecsInput) => {
   return result;
 };
 const updateSupplier = catchAsync(async (req, res, next) => {
+  console.log(req.body);
   const updateSupplier = await supplierService.updateSupplierById(req.params.supplierId, req.body);
   if (!updateSupplier) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Supplier not found');
