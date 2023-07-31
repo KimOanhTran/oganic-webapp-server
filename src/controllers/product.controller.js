@@ -186,6 +186,7 @@ const Top = async (req, res) => {
 };
 
 const createProduct = catchAsync(async (req, res, next) => {
+  console.log(req);
   const name = req.body.name;
   const code = req.body.code;
   const desc = req.body.desc;
@@ -203,6 +204,7 @@ const createProduct = catchAsync(async (req, res, next) => {
   if (!specs) error += config.message.errMissField + '[specs]. ';
   if (!price) error += config.message.errMissField + '[price]. ';
   if (!image_base64) error += config.message.errMissField + '[image_base64]. ';
+  console.log(error);
   if (!!error) responseError({ res, statusCode: 400, message: error });
 
   const img_info = await image.upload(image.base64(image_base64), 'product_image');
@@ -218,6 +220,7 @@ const createProduct = catchAsync(async (req, res, next) => {
 
   if (Object.keys(specs).length == 0) return responseError({ res, statusCode: 400, message: config.message.err400 });
 
+  const color_save = { color: name, image_id: img_info.public_id, image_url: img_info.url };
   // const product = new Product({ name, code, desc, price, sale });
   const product = new Product({
     name,
@@ -228,6 +231,7 @@ const createProduct = catchAsync(async (req, res, next) => {
     price,
     sale,
     image_id: img_info.public_id,
+    colors: [color_save],
     image_url: img_info.url
   });
   const session = await mongoose.startSession();
