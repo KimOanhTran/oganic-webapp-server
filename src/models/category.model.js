@@ -74,6 +74,7 @@ categorySchema.virtual('info').get(function () {
     name: this.name,
     image_url: this.image_url,
     icon_url: this.icon_url,
+    slug: this.slug,
     products_length: this.products.length,
     specsModel: specsModelReduce
   };
@@ -85,6 +86,7 @@ categorySchema.virtual('surface').get(function () {
     name: this.name,
     image_url: this.image_url,
     icon_url: this.icon_url,
+    slug: this.slug,
     products_length: this.products.length
   };
 });

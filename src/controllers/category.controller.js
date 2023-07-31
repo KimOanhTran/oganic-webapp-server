@@ -22,7 +22,7 @@ const RequestCategory = async () => {
     //vì phương thức này trả về một promise nên sử dụng từ khóa await để chờ kq trả về
     //trước khi gán danh sách các danh mục vào biến list
     var list = await Category.find();
-    // console.log(list)
+    console.log(list);
     //Khời tạo các biên tạm thời để lưu trữ dl, dl danh sách danh mục được
     //xử lý để chuẩn bị cho việc sử dụng trong ứng dụng
     var temp = {};
@@ -34,8 +34,11 @@ const RequestCategory = async () => {
       // @ts-ignore
       infos[c.name] = c.info;
       infos[c._id.toString()] = infos[c.name];
+
       // @ts-ignore
-      // console.log(c.surface)
+      console.log(c.surface);
+      console.log(c.infos);
+
       surfaces.push(c.surface);
     });
     categoryTemp = temp;
@@ -79,6 +82,7 @@ const getACategory = catchAsync(async (req, res, next) => {
     if (!categoryTempExist) throw Error();
     //Nếu tham số name tồn tại và trùng với tên trong csdl hàm sẽ trả về
     //thông tin của danh mục đó thông qua đối tượng JSON
+    console.log(categoryInfosTemp[name]);
     if (!!name && categoryInfosTemp.hasOwnProperty(name)) {
       return res.send({ msg: config.message.success, data: categoryInfosTemp[name] });
     }
@@ -93,6 +97,8 @@ const getACategory = catchAsync(async (req, res, next) => {
   }
 });
 
+//Xác thực và lọc các thông số hợp lệ của sản phẩm dựa trên mô hình thông số của danh mục (~category.specsModel)
+//Kết quả là trả về một đối tượng chứa các thông số hợp lệ
 const ValidSpecs = function (category, specs) {
   var new_specs = {};
   for (let i = 0; i < category.specsModel.length; i++) {
@@ -165,7 +171,10 @@ const Delete = async (req, res, next) => {
     const category = await Category.findOne({ $or: [{ _id: _id }, { name: name }] });
     if (!category) return res.status(400).send({ msg: config.message.errNotExists });
     if (category.products.length > 0) {
-      return res.send({ msg: config.message.failure, reason: `Category relate ${category.products.length} products` });
+      return res.send({
+        msg: config.message.errProductValid,
+        reason: `Category relate ${category.products.length} products`
+      });
     }
     category.deleteOne((err) => {
       if (err) return res.status(500).send({ msg: config.message.err500 });
