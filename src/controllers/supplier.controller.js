@@ -224,6 +224,13 @@ const updateSupplier = catchAsync(async (req, res, next) => {
   res.send({ msg: 'Thành công', supplier: updateSupplier });
 });
 const deleteSupplier = catchAsync(async (req, res, next) => {
+  const supplier = await supplierService.getSupplierById(req.params.supplierId);
+  if (supplier.products.length > 0) {
+    return res.send({
+      msg: config.message.errProductValid,
+      reason: `Category relate ${supplier.products.length} products`
+    });
+  }
   await supplierService.deleteSupplierById(req.params.supplierId);
   responseSuccess({ res, msg: config.message.success });
 });
