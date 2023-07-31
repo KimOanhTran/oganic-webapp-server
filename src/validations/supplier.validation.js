@@ -37,13 +37,11 @@ const updateSupplier = {
       name: Joi.string(),
       slug: Joi.string(),
       phone: Joi.string().length(10).pattern(PHONE_REGEX),
-      address: Joi.object()
-        .keys({
-          province: Joi.string().required(),
-          district: Joi.string().required(),
-          address: Joi.string().required()
-        })
-        .required()
+      address: Joi.object().keys({
+        province: Joi.string(),
+        district: Joi.string(),
+        address: Joi.string()
+      })
     })
     .min(1)
 };

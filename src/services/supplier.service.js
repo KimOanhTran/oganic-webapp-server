@@ -14,6 +14,7 @@ const createCategory = async (categoryBody) => {
  */
 const deleteSupplierById = async (supplierId) => {
   const supplier = await getSupplierById(supplierId);
+  console.log(supplier);
   if (!supplier) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Supplier not found');
   }
@@ -29,6 +30,7 @@ const deleteSupplierById = async (supplierId) => {
  * @returns {Promise<User>}
  */
 const getSupplierById = async (id) => {
+  console.log(Supplier.findById(id));
   return Supplier.findById(id);
 };
 
