@@ -3,8 +3,10 @@ const router = express.Router();
 const discountController = require('./../../controllers/discount.controller');
 router.route('/list').get(discountController.List);
 router.route('/create').post(discountController.Create);
-router
-  .route('/edit')
-  .put(discountController.Update);
+router.route('/delete').post(discountController.Delete);
+router.route('/edit').put(discountController.Update);
 router.route('/read').get(discountController.List);
+router.route('/getADiscount/:discountId').get(discountController.getADiscount);
+
+
 module.exports = router;

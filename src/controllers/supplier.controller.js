@@ -82,7 +82,7 @@ const List = catchAsync(async (req, res, next) => {
 const getASupplier = catchAsync(async (req, res, next) => {
   const supplier = await supplierService.getSupplierById(req.params.supplierId);
   if (!supplier) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Supplier not found');
   }
   res.send(supplier);
 });
