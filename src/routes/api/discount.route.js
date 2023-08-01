@@ -6,4 +6,7 @@ router.route('/create').post(discountController.Create);
 router.route('/delete').post(discountController.Delete);
 router.route('/edit').put(discountController.Update);
 router.route('/read').get(discountController.List);
+router.route('/getADiscount/:discountId').get(discountController.getADiscount);
+
+
 module.exports = router;

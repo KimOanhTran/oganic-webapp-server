@@ -109,8 +109,19 @@ const List = async (req, res, next) => {
 
 const Update = async (req, res, next) => {
   const _id = req.body._id;
+  console.log(req.body);
   const code = req.body.code;
   const enable = req.body.enable;
+  const is_percent = req.body.is_percent;
+  const is_ship = req.body.is_ship;
+  const is_oid = req.body.is_oid;
+  const is_oic = req.body.is_oic;
+  const dateStart = req.body.dateStart;
+  const dateEnd = req.body.dateEnd;
+  const quanity = req.body.quanity;
+  const minPrice = req.body.minPrice;
+  const maxPrice = req.body.maxPrice;
+  const value = req.body.value;
   const categories_del = req.body.categories_del;
   const products_del = req.body.products_del;
   const accounts_del = req.body.accounts_del;
@@ -120,13 +131,68 @@ const Update = async (req, res, next) => {
   const accounts_add = req.body.caccounts_add;
   const quantity = req.body.quanity;
 
-  if (!_id && !code) return res.status(400).send({ msg: config.message.errMissField + '[_id/code]. ' });
-  const discount = await Discount.findOne({ $or: [{ _id: _id }, { code: code }] }).select('-used');
-  if (!discount) return res.status(400).send({ msg: config.message.errWrongField + '[_id/code]. ' });
+  if (!_id) return res.status(400).send({ msg: config.message.errMissField + '[_id]. ' });
+  const discount = await Discount.findOne({ $or: [{ _id: _id }] }).select('-used');
+  if (!discount) return res.status(400).send({ msg: config.message.errWrongField + '[_id]. ' });
 
   if (enable != undefined) {
     discount.markModified('enable');
     discount.enable = enable;
+  }
+
+  if (is_percent != undefined) {
+    discount.markModified('is_percent');
+    discount.is_percent = is_percent;
+  }
+
+  if (is_ship != undefined) {
+    discount.markModified('is_ship');
+    discount.is_ship = is_ship;
+  }
+
+  if (is_oid != undefined) {
+    discount.markModified('is_oid');
+    discount.is_oid = is_oid;
+  }
+
+  if (is_oic != undefined) {
+    discount.markModified('is_oic');
+    discount.is_oic = is_oic;
+  }
+
+  if (dateStart != undefined) {
+    discount.markModified('dateStart');
+    discount.dateStart = dateStart;
+  }
+
+  if (dateEnd != undefined) {
+    discount.markModified('dateEnd');
+    discount.dateEnd = dateEnd;
+  }
+
+  if (quanity != undefined) {
+    discount.markModified('quanity');
+    discount.quanity = quanity;
+  }
+
+  if (minPrice != undefined) {
+    discount.markModified('minPrice');
+    discount.minPrice = minPrice;
+  }
+
+  if (maxPrice != undefined) {
+    discount.markModified('maxPrice');
+    discount.maxPrice = maxPrice;
+  }
+
+  if (value != undefined) {
+    discount.markModified('value');
+    discount.value = value;
+  }
+
+  if (code != undefined) {
+    discount.markModified('code');
+    discount.code = code;
   }
 
   if (!!categories_del) {
@@ -206,19 +272,30 @@ const Read = async (req, res, next) => {
   return res.send({ msg: config.message.success, data: { code, desc } });
 };
 
+const getADiscount = catchAsync(async (req, res, next) => {
+  const _id = req.params.discountId;
+  console.log(_id);
+  const discount = await Discount.findOne({ $or: [{ _id: _id }] });
+  console.log(discount);
+  if (!discount) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Discount not found');
+  }
+  res.send(discount);
+});
+
 const Delete = async (req, res, next) => {
   try {
-    // const code = req.body.code;
-    const _id = req.body._id;
+    const code = req.body.code;
+    const _id = req.body.id;
     console.log(_id);
     if (!_id) return res.status(400).send({ msg: config.message.err400 });
 
-    const discount = await Discount.findOne({ $or: [{ _id: _id }] });
+    const discount = await Discount.findOne({ $or: [{ _id: _id }, { code: code }] });
     if (!discount) return res.status(400).send({ msg: config.message.errNotExists });
     if (discount.products.length > 0) {
       return res.send({
         msg: config.message.errProductValid,
-        reason: `Discount relate ${category.products.length} products`
+        reason: `Discount relate ${discount.products.length} products`
       });
     }
     if (discount.accounts.length > 0) {
@@ -242,5 +319,6 @@ module.exports = {
   List,
   Update,
   Read,
-  Delete
+  Delete,
+  getADiscount
 };
