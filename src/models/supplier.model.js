@@ -85,6 +85,12 @@ supplierSchema.statics.checkSupplier = function (phone) {
   return { isValid: true };
 };
 
+supplierSchema.methods.addProduct = function (product) {
+  // @ts-ignore
+  if (this.products.includes(product._id)) return;
+  this.products.push(product._id);
+};
+
 supplierSchema.plugin(toJSON);
 
 const Supplier = mongoose.model('Supplier', supplierSchema);

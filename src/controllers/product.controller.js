@@ -15,6 +15,7 @@ const config = require('../config/config');
 const CateCtl = require('../controllers/category.controller');
 const { responseSuccess, responseError } = require('../utils/responseType');
 const { categoryController } = require('.');
+const { Supplier } = require('../models');
 
 const getAProduct = catchAsync(async (req, res, next) => {
   const _id = req.query._id;
@@ -191,6 +192,7 @@ const createProduct = catchAsync(async (req, res, next) => {
   const code = req.body.code;
   const desc = req.body.desc;
   const category = req.body.category;
+  const supplier = req.body.specs.Supplier ? req.body.specs.Supplier : '';
   let specs = req.body.specs;
   const price = req.body.price;
   const sale = req.body.sale;
@@ -216,11 +218,12 @@ const createProduct = catchAsync(async (req, res, next) => {
   //Mã sử lý danh mục và thông số sản phẩm.
   //Nó tìm danh mục trong csdl dựa trên tên danh mục được cung cấp trong category. Nếu không tìm thấy danh mục hàm Response sẽ gửi thông báo lỗi
   let categoryDoc = await Category.findOne({ name: category });
-
+  let supplierDoc = await Supplier.findOne({ name: supplier });
   if (!categoryDoc) return responseError({ res, statusCode: 400, message: config.message.err400 });
 
   //kiểm tra các thông số sản phẩm và xử lý thông qua hàm CateCtl.ValidSpecs
   specs = CateCtl.ValidSpecs(categoryDoc, specs);
+  console.log(specs);
 
   if (Object.keys(specs).length == 0) return responseError({ res, statusCode: 400, message: config.message.err400 });
 
@@ -253,7 +256,12 @@ const createProduct = catchAsync(async (req, res, next) => {
     categoryDoc.addProduct(productDoc);
     //Lưu trữ thông tin danh mục với ản phẩm mới được thêm vào csdl
     categoryDoc = await categoryDoc.save();
+
+    supplierDoc.addProduct(product);
+    supplierDoc = await supplierDoc.save();
+
     if (!productDoc || !categoryDoc) throw Error('Fail');
+    if (!supplierDoc || !supplierDoc) throw Error('Fail');
 
     //Hoàn thành giao dịch và lưu vào csdl
     await session.commitTransaction();
