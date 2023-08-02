@@ -109,7 +109,6 @@ const List = async (req, res, next) => {
 
 const Update = async (req, res, next) => {
   const _id = req.body._id;
-  console.log(req.body);
   const code = req.body.code;
   const enable = req.body.enable;
   const is_percent = req.body.is_percent;
@@ -118,23 +117,24 @@ const Update = async (req, res, next) => {
   const is_oic = req.body.is_oic;
   const dateStart = req.body.dateStart;
   const dateEnd = req.body.dateEnd;
-  const quanity = req.body.quanity;
+  const quantity = req.body.quantity;
   const minPrice = req.body.minPrice;
   const maxPrice = req.body.maxPrice;
   const value = req.body.value;
   const categories_del = req.body.categories_del;
   const products_del = req.body.products_del;
   const accounts_del = req.body.accounts_del;
-
   const categories_add = req.body.categories_add;
   const products_add = req.body.products_add;
-  const accounts_add = req.body.caccounts_add;
-  const quantity = req.body.quanity;
+  const accounts_add = req.body.accounts_add;
 
-  if (!_id) return res.status(400).send({ msg: config.message.errMissField + '[_id]. ' });
+  console.log('A');
+  if (!_id || !code) return res.status(400).send({ msg: config.message.errMissField + '[_id]. va [code] ' });
+
+  // Tìm kiếm mã khuyến mãi theo _id hoặc code
   const discount = await Discount.findOne({ $or: [{ _id: _id }] }).select('-used');
+  console.log('a', discount);
   if (!discount) return res.status(400).send({ msg: config.message.errWrongField + '[_id]. ' });
-
   if (enable != undefined) {
     discount.markModified('enable');
     discount.enable = enable;
@@ -170,7 +170,7 @@ const Update = async (req, res, next) => {
     discount.dateEnd = dateEnd;
   }
 
-  if (quanity != undefined) {
+  if (quantity != undefined) {
     discount.markModified('quanity');
     discount.quanity = quanity;
   }
@@ -194,48 +194,83 @@ const Update = async (req, res, next) => {
     discount.markModified('code');
     discount.code = code;
   }
+  // Kiểm tra nếu sản phẩm đã có mã khuyến mãi thì không thêm mới
+  if (products_add && products_add.length > 0) {
+    const existingProducts = discount.products;
+    if (existingProducts && existingProducts.length > 0) {
+      return res.status(400).send({ msg: 'Fail: Product already has a discount code.' });
+    }
+  }
 
-  if (!!categories_del) {
+  // Kiểm tra nếu người dùng đã có mã khuyến mãi thì không thêm mới
+  if (accounts_add && accounts_add.length > 0) {
+    const existingAccounts = discount.accounts;
+    if (existingAccounts && existingAccounts.length > 0) {
+      const duplicateAccounts = accounts_add.filter((acc) => existingAccounts.includes(acc));
+      if (duplicateAccounts.length > 0) {
+        return res.status(400).send({ msg: 'Fail: Duplicate discount code for some accounts.' });
+      }
+    }
+  }
+
+  // Cập nhật thông tin mã khuyến mãi
+  if (enable !== undefined) {
+    discount.markModified('enable');
+    discount.enable = enable;
+  }
+  if (is_percent !== undefined) {
+    discount.markModified('is_percent');
+    discount.is_percent = is_percent;
+  }
+  // Các trường thông tin khác tương tự
+
+  // Xử lý xoá và thêm danh mục, sản phẩm, người dùng
+  if (categories_del && categories_del.length > 0) {
     discount.markModified('categories');
     discount.categories = discount.categories.filter((e) => !categories_del.includes(e));
   }
-
-  if (!!products_del) {
+  if (products_del && products_del.length > 0) {
     discount.markModified('products');
-    discount.products = discount.products.filter((e) => !products_del.includes(e));
+    discount.products = discount.products.filter((product) => {
+      return !products_del.some((delProduct) => delProduct._id === product._id);
+    });
   }
-
-  if (!!accounts_del) {
+  if (accounts_del && accounts_del.length > 0) {
     discount.markModified('accounts');
-    discount.accounts = discount.accounts.filter((e) => !accounts_del.includes(e));
+    discount.accounts = discount.accounts.filter((accounts) => {
+      return !accounts_del.some((delAccount) => delAccount._id === accounts._id);
+    });
   }
-
-  if (!!categories_add) {
+  if (categories_add && categories_add.length > 0) {
     discount.markModified('categories');
     categories_add.forEach((e) => discount.categories.push(e));
   }
-
-  if (!!products_add) {
+  if (products_add && products_add.length > 0) {
     discount.markModified('products');
     products_add.forEach((e) => discount.products.push(e));
   }
   if (!!accounts_add) {
     discount.markModified('accounts');
-    accounts_add.forEach(async (e) => {
-      const message = 'Bạn vừa được liên kết với mã Discount ' + discount.code;
-      if (
-        await Account.findByIdAndUpdate(e, { $push: { notifications: { $each: [{ message }], $position: 0 } } })
+    for (const e of accounts_add) {
+      const isAlreadyAdded = discount.accounts.includes(e);
+      if (!isAlreadyAdded) {
+        const message = 'Bạn vừa được liên kết với mã Discount ' + discount.code;
+        await Account.findByIdAndUpdate(e, {
+          $push: { notifications: { $each: [{ message }], $position: 0 } }
+        })
           .select('_id')
-          .exec()
-      )
+          .exec();
         discount.accounts.push(e);
-    });
+      }
+    }
   }
-  if (!!quantity) {
+
+  if (quantity !== undefined) {
     discount.markModified('quantity');
     discount.quantity = quantity;
   }
 
+  // Lưu thay đổi vào cơ sở dữ liệu
   discount.save((err, doc) => {
     if (err) return res.status(500).send({ msg: err.message });
     if (!doc) return res.status(400).send({ msg: config.message.errMissField });
