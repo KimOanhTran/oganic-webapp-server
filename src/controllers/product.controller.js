@@ -192,10 +192,11 @@ const createProduct = catchAsync(async (req, res, next) => {
   const code = req.body.code;
   const desc = req.body.desc;
   const category = req.body.category;
-  const supplier = req.body.specs.Supplier ? req.body.specs.Supplier : '';
+  // const supplier = req.body.specs.Supplier ? req.body.specs.Supplier : '';
   let specs = req.body.specs;
   const price = req.body.price;
   const sale = req.body.sale;
+  const supplier = req.body.supplier_name;
   const image_base64 = req.body.image_base64;
 
   // Xử lý thông báo lỗi nếu thiếu thông tin bắt buộc thì thông tin bị thiếu
@@ -206,6 +207,7 @@ const createProduct = catchAsync(async (req, res, next) => {
   if (!category) error += config.message.errMissField + '[category]. ';
   if (!specs) error += config.message.errMissField + '[specs]. ';
   if (!price) error += config.message.errMissField + '[price]. ';
+  if (!supplier) error += config.message.errMissField + '[supplier]. ';
   if (!image_base64) error += config.message.errMissField + '[image_base64]. ';
   console.log(error);
   if (!!error) responseError({ res, statusCode: 400, message: error });
@@ -223,9 +225,9 @@ const createProduct = catchAsync(async (req, res, next) => {
 
   //kiểm tra các thông số sản phẩm và xử lý thông qua hàm CateCtl.ValidSpecs
   specs = CateCtl.ValidSpecs(categoryDoc, specs);
-  console.log(specs);
+  // console.log(specs);
 
-  if (Object.keys(specs).length == 0) return responseError({ res, statusCode: 400, message: config.message.err400 });
+  // if (Object.keys(specs).length == 0) return responseError({ res, statusCode: 400, message: config.message.err400 });
 
   const color_save = { color: name, image_id: img_info.public_id, image_url: img_info.url };
   // const product = new Product({ name, code, desc, price, sale });
@@ -240,7 +242,8 @@ const createProduct = catchAsync(async (req, res, next) => {
     sale,
     image_id: img_info.public_id,
     colors: [color_save],
-    image_url: img_info.url
+    image_url: img_info.url,
+    supplier_name: supplier
   });
   //Tạo một phiên làm việc mongoDB sử dụng mongoose
   const session = await mongoose.startSession();
@@ -260,8 +263,7 @@ const createProduct = catchAsync(async (req, res, next) => {
     supplierDoc.addProduct(product);
     supplierDoc = await supplierDoc.save();
 
-    if (!productDoc || !categoryDoc) throw Error('Fail');
-    if (!supplierDoc || !supplierDoc) throw Error('Fail');
+    if (!productDoc || !categoryDoc || !supplierDoc) throw Error('Fail');
 
     //Hoàn thành giao dịch và lưu vào csdl
     await session.commitTransaction();

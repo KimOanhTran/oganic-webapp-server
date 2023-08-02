@@ -82,7 +82,7 @@ const getACategory = catchAsync(async (req, res, next) => {
     if (!categoryTempExist) throw Error();
     //Nếu tham số name tồn tại và trùng với tên trong csdl hàm sẽ trả về
     //thông tin của danh mục đó thông qua đối tượng JSON
-    console.log(categoryInfosTemp[name]);
+    // console.log(categoryInfosTemp[name]);
     if (!!name && categoryInfosTemp.hasOwnProperty(name)) {
       return res.send({ msg: config.message.success, data: categoryInfosTemp[name] });
     }

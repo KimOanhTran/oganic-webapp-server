@@ -16,14 +16,16 @@ const productSchema = mongoose.Schema(
       trim: true,
       unique: true
     },
-    
+
     image_id: { type: String },
-    colors: [{
+    colors: [
+      {
         color: { type: String, required: true, trim: true },
         image_id: String,
         image_url: String,
         quantity: { type: Number, default: 0 }
-    }],
+      }
+    ],
     category: String,
     specs: mongoose.Schema.Types.Mixed,
     price: { type: Number, required: [true, 'Product price cannot be empty'] },
@@ -60,6 +62,11 @@ const productSchema = mongoose.Schema(
     },
     image_url: {
       type: String
+    },
+    supplier_name: {
+      type: String,
+      required: true,
+      trim: true
     }
   },
   {
