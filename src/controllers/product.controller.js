@@ -490,8 +490,7 @@ const ValidCart = async (req, res, next) => {
 };
 
 const Imports = async (req, res, next) => {
-  console.log('==>' + req.body);
-  console.log(req.body);
+  // console.log(req.user);
   const data = req.body.data; // [{code, quantity, color, price}]
   if (!data) return res.status(400).send({ msg: config.message.err400 });
 
@@ -527,7 +526,7 @@ const Imports = async (req, res, next) => {
       }
     }
 
-    const importProduct = new Import({ products: success, admin: req.query._id });
+    const importProduct = new Import({ products: success, admin: req.user._id });
     if (!(await importProduct.save())) throw Error('Không thể lưu import product');
 
     await session.commitTransaction();
@@ -538,6 +537,34 @@ const Imports = async (req, res, next) => {
     await session.abortTransaction();
     session.endSession();
     return res.status(500).send({ msg: 'Lỗi không thể lưu import bill' });
+  }
+};
+
+const ListImports = async (req, res, next) => {
+  console.log(req.body);
+  try {
+    const list = await Import.find({ 'products.product': req.body.id })
+      .populate('admin')
+      .exec((err, listImport) => {
+        // console.log(listImport);
+        if (err) {
+          return res.status(500).send({ msg: `error ${err}` });
+        } else if (listImport && listImport.length > 0) {
+          return res.send({ msg: config.message.success, data: listImport });
+        } else {
+          return res.status(400).send({ msg: 'Not found!' });
+        }
+      });
+    // console.log(list);
+    // //list.forEach(c): lặp qua danh sách các đối tượng danh mục và thực hiện các bước xử lý
+    // list.forEach((c) => {
+    //   console.log(c.surface);
+    //   arr.push(c.surface);
+    // });
+    // return res.send({ msg: config.message.success, data: list });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send({ msg: config.message.err500 });
   }
 };
 
@@ -797,5 +824,6 @@ module.exports = {
   Top,
   Rate,
   ReadComments,
-  Hint
+  Hint,
+  ListImports
 };

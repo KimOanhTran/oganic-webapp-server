@@ -3,13 +3,18 @@ const { toJSON } = require('./plugins');
 
 const importSchema = mongoose.Schema(
   {
-    products: [{
-        product: {type: mongoose.Schema.Types.ObjectId, ref: "Product"}, 
+    products: [
+      {
+        product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
         quantity: Number,
         price: Number,
         color: String
-    }],
-    admin: {type: mongoose.Schema.Types.ObjectId, ref: "Account"} 
+      }
+    ],
+    admin: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' }
+    // updater_name: {
+    //   type: String
+    // }
   },
   {
     timestamps: true
