@@ -22,7 +22,7 @@ const RequestCategory = async () => {
     //vì phương thức này trả về một promise nên sử dụng từ khóa await để chờ kq trả về
     //trước khi gán danh sách các danh mục vào biến list
     var list = await Category.find();
-    console.log(list);
+    // console.log(list);
     //Khời tạo các biên tạm thời để lưu trữ dl, dl danh sách danh mục được
     //xử lý để chuẩn bị cho việc sử dụng trong ứng dụng
     var temp = {};
@@ -36,8 +36,8 @@ const RequestCategory = async () => {
       infos[c._id.toString()] = infos[c.name];
 
       // @ts-ignore
-      console.log(c.surface);
-      console.log(c.infos);
+      // console.log(c.surface);
+      // console.log(c.infos);
 
       surfaces.push(c.surface);
     });
@@ -61,7 +61,7 @@ const List = catchAsync(async (req, res, next) => {
     const arr = [];
     //list.forEach(c): lặp qua danh sách các đối tượng danh mục và thực hiện các bước xử lý
     list.forEach((c) => {
-      console.log(c.surface);
+      // console.log(c.surface);
       arr.push(c.surface);
     });
     return res.send({ msg: config.message.success, data: arr });

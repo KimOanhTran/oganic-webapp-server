@@ -16,6 +16,7 @@ const CateCtl = require('../controllers/category.controller');
 const { responseSuccess, responseError } = require('../utils/responseType');
 const { categoryController } = require('.');
 const { Supplier } = require('../models');
+const History = require('../models/history.model');
 
 const getAProduct = catchAsync(async (req, res, next) => {
   const _id = req.query._id;
@@ -101,7 +102,7 @@ const List = async (req, res, next) => {
         splitArr[s.name] = s.values.split(';').map((e) => e.trim());
       });
       specs = splitArr;
-      console.log('specs', specs);
+      // console.log('specs', specs);
     }
     if (!!colors) colors = colors.split(';').map((e) => e.trim());
     if (!!category) {
@@ -118,12 +119,12 @@ const List = async (req, res, next) => {
 
           if (specs.hasOwnProperty(e.name)) {
             const values = specs[e.name];
-            console.log('name', e.name);
-            console.log('values', values);
+            // console.log('name', e.name);
+            // console.log('values', values);
 
             for (let j = 0; j < e.values.length; j++) {
               if (values.includes(e.values[j].value)) {
-                console.log('valueTest', e.values[j].value);
+                // console.log('valueTest', e.values[j].value);
                 e.values[j].products.forEach((id) => specsProduct.push(id.toString()));
               }
             }
@@ -150,11 +151,11 @@ const List = async (req, res, next) => {
     if (!!sortName && ['price', 'sale', 'sold', 'total_rate'].includes(sortName) && (sortType == 1 || sortType == -1)) {
       sortOptions[sortName] = sortType;
     }
-
+    console.log(sortOptions);
     const count = await Product.countDocuments(queryOptions);
-    console.log(count);
+    // console.log(count);
     Product.find(queryOptions)
-      .sort(sortOptions)
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean()
@@ -187,6 +188,7 @@ const Top = async (req, res) => {
 };
 
 const createProduct = catchAsync(async (req, res, next) => {
+  console.log(req);
   //Lấy thông tin sản phẩm từ phần thân yêu cầu
   const name = req.body.name;
   const code = req.body.code;
@@ -197,6 +199,7 @@ const createProduct = catchAsync(async (req, res, next) => {
   const price = req.body.price;
   const sale = req.body.sale;
   const supplier = req.body.supplier_name;
+  const idUpdater = req.body.idUpdater;
   const image_base64 = req.body.image_base64;
 
   // Xử lý thông báo lỗi nếu thiếu thông tin bắt buộc thì thông tin bị thiếu
@@ -245,6 +248,15 @@ const createProduct = catchAsync(async (req, res, next) => {
     image_url: img_info.url,
     supplier_name: supplier
   });
+
+  const historyPrice = new History({
+    code_product: code,
+    name_product: name,
+    old_price: 0,
+    new_price: price,
+    admin: idUpdater
+  });
+
   //Tạo một phiên làm việc mongoDB sử dụng mongoose
   const session = await mongoose.startSession();
   //Bắt đầu một giao dịch trong phiên làm việc
@@ -262,7 +274,7 @@ const createProduct = catchAsync(async (req, res, next) => {
 
     supplierDoc.addProduct(product);
     supplierDoc = await supplierDoc.save();
-
+    if (!(await historyPrice.save())) throw Error('Không thể lưu lịch sử giá');
     if (!productDoc || !categoryDoc || !supplierDoc) throw Error('Fail');
 
     //Hoàn thành giao dịch và lưu vào csdl
@@ -281,6 +293,7 @@ const createProduct = catchAsync(async (req, res, next) => {
   }
 });
 const Update = async (req, res, next) => {
+  // console.log(req);
   try {
     //Lấy thông tin từ phần thân yêu cầu
     const _id = req.body._id;
@@ -291,6 +304,8 @@ const Update = async (req, res, next) => {
     const enable = req.body.enable;
     const specs = req.body.specs;
     const sale = req.body.sale;
+    const supplier = req.body.supplier_name;
+    const idUpdater = req.body.idUpdater;
     const image_base64 = req.body.image_base64;
 
     // Get product
@@ -299,6 +314,10 @@ const Update = async (req, res, next) => {
 
     //Kiểm tra và gửi thông báo lỗi nếu không tìm thấy sản phẩm
     let product = await Product.findOne({ $or: [{ _id: _id }, { code: code }] }).select('-comments');
+
+    const old_price = product.price;
+    console.log(old_price);
+    console.log(price);
 
     if (!product) return responseError({ res, statusCode: 500, message: config.err500 });
 
@@ -315,7 +334,7 @@ const Update = async (req, res, next) => {
       product.desc = desc || product.desc;
       product.price = price || product.price;
       product.sale = sale || product.sale;
-
+      product.supplier_name = supplier || product.supplier_name;
       let category;
       if (!!specs) {
         //Tìm danh mục sản phẩm(tại sao phải tìm danh mục sản phẩm trong list Category vì nếu đã được thêm vào sản phẩm thì cate đó phải tồn tại rồi chứ)
@@ -347,6 +366,17 @@ const Update = async (req, res, next) => {
       const productDoc = await product.save(opts);
       const categeryDoc = !!category ? await category.save(opts) : 'temp';
       // Kiểm tra và gửi thông báo lỗi nếu không lưu đồng bộ sản phẩm và danh mục
+      if (old_price !== price) {
+        const historyPrice = new History({
+          code_product: code,
+          name_product: name,
+          old_price: old_price,
+          new_price: price,
+          admin: idUpdater
+        });
+        console.log(historyPrice);
+        if (!(await historyPrice.save())) throw Error('Không thể lưu lịch sử giá');
+      }
       if (!productDoc || !categeryDoc) {
         if (!!img_info) image.destroy(img_info.public_id);
         throw Error();
@@ -562,6 +592,27 @@ const ListImports = async (req, res, next) => {
     //   arr.push(c.surface);
     // });
     // return res.send({ msg: config.message.success, data: list });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send({ msg: config.message.err500 });
+  }
+};
+
+const ListHistoryPriceByIdProduct = async (req, res, next) => {
+  console.log(req.body);
+  try {
+    const list = await History.find({ code_product: req.body.code })
+      .populate('admin')
+      .exec((err, listHistory) => {
+        // console.log(listImport);
+        if (err) {
+          return res.status(500).send({ msg: `error ${err}` });
+        } else if (listHistory && listHistory.length > 0) {
+          return res.send({ msg: config.message.success, data: listHistory });
+        } else {
+          return res.status(400).send({ msg: 'Not found!' });
+        }
+      });
   } catch (err) {
     console.log(err);
     return res.status(500).send({ msg: config.message.err500 });
@@ -825,5 +876,6 @@ module.exports = {
   Rate,
   ReadComments,
   Hint,
-  ListImports
+  ListImports,
+  ListHistoryPriceByIdProduct
 };
