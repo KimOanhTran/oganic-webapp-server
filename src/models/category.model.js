@@ -87,7 +87,9 @@ categorySchema.virtual('surface').get(function () {
     image_url: this.image_url,
     icon_url: this.icon_url,
     slug: this.slug,
-    products_length: this.products.length
+    products_length: this.products.length,
+    createdAt: this.createdAt,
+    updatedAt: this.updatedAt
   };
 });
 

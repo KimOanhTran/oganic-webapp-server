@@ -99,13 +99,20 @@ const generateAuthTokens = async (user) => {
  * @returns {Promise<string>}
  */
 const generateResetPasswordToken = async (email) => {
-  const user = await userService.getUserByEmail(email);
+  //Kiểm tra email gửi yêu cầu reset có hợp lệ không
+  console.log(email);
+  const user = await userService.getUserByEmailOrPhone(email);
+  console.log(user);
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'No users found with this email');
   }
+  //Tính toán thời gian hết hạn cho mã token
   const expires = dayjs().add(config.jwt.resetPasswordExpirationMinutes, 'minutes');
+  //Tạo một thông báo reset mk dựa trên thông tin user.id, thời gian hết hạn token,
   const resetPasswordToken = generateToken(user.id, expires, tokenTypes.RESET_PASSWORD);
+  //sau khi tạo mã tbn hàm sẽ gọi hàm saveToken để lưu thông tin mã tb vào csdl
   await saveToken(resetPasswordToken, user.id, expires, tokenTypes.RESET_PASSWORD);
+  //Trả về nã tb reset mk với token reset
   return resetPasswordToken;
 };
 

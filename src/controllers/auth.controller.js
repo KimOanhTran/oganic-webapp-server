@@ -72,8 +72,9 @@ const refreshTokens = catchAsync(async (req, res) => {
 });
 
 const forgotPassword = catchAsync(async (req, res) => {
-  const resetPasswordToken = await tokenService.generateResetPasswordToken(req.body.email);
-  await emailService.sendResetPasswordEmail(req.body.email, resetPasswordToken);
+  //tạo biến tam để lưu token reset và exprise
+  const resetPasswordToken = await tokenService.generateResetPasswordToken(req.body.username);
+  await emailService.sendResetPasswordEmail(req.body.username, resetPasswordToken);
   responseSuccess({
     res,
     statusCode: httpStatus.NO_CONTENT,
