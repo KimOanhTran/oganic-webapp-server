@@ -28,6 +28,7 @@ const Create = async (req, res, next) => {
   const is_oid = req.body.is_oid;
   const is_oic = req.body.is_oic;
   const value = req.body.value;
+  console.log(value);
 
   if (!code) return res.status(400).send({ msg: config.message.errMissField + '[Code]. ' });
   if (!value) return res.status(400).send({ msg: config.message.errMissField + '[Value]. ' });
@@ -46,6 +47,7 @@ const Create = async (req, res, next) => {
     is_oic,
     value
   });
+  console.log(value);
 
   discount.save((err, doc) => {
     if (err) return res.status(500).send({ msg: err.message });
@@ -172,7 +174,7 @@ const Update = async (req, res, next) => {
 
   if (quantity != undefined) {
     discount.markModified('quanity');
-    discount.quanity = quanity;
+    discount.quantity = quantity;
   }
 
   if (minPrice != undefined) {
@@ -195,12 +197,12 @@ const Update = async (req, res, next) => {
     discount.code = code;
   }
   // Kiểm tra nếu sản phẩm đã có mã khuyến mãi thì không thêm mới
-  if (products_add && products_add.length > 0) {
-    const existingProducts = discount.products;
-    if (existingProducts && existingProducts.length > 0) {
-      return res.status(400).send({ msg: 'Fail: Product already has a discount code.' });
-    }
-  }
+  // if (products_add && products_add.length > 0) {
+  //   const existingProducts = discount.products;
+  //   if (existingProducts && existingProducts.length > 0) {
+  //     return res.status(400).send({ msg: 'Fail: Product already has a discount code.' });
+  //   }
+  // }
 
   // Kiểm tra nếu người dùng đã có mã khuyến mãi thì không thêm mới
   if (accounts_add && accounts_add.length > 0) {
@@ -213,15 +215,6 @@ const Update = async (req, res, next) => {
     }
   }
 
-  // Cập nhật thông tin mã khuyến mãi
-  if (enable !== undefined) {
-    discount.markModified('enable');
-    discount.enable = enable;
-  }
-  if (is_percent !== undefined) {
-    discount.markModified('is_percent');
-    discount.is_percent = is_percent;
-  }
   // Các trường thông tin khác tương tự
 
   // Xử lý xoá và thêm danh mục, sản phẩm, người dùng
@@ -349,11 +342,70 @@ const Delete = async (req, res, next) => {
   }
 };
 
+const getHistoryDiscountProduct = async (req, res, next) => {
+  try {
+    const discount = await Discount.find({ _id: req.body.id })
+      .populate('products')
+      .exec((err, listImport) => {
+        // console.log(listImport);
+        if (err) {
+          return res.status(500).send({ msg: `error ${err}` });
+        } else if (listImport && listImport.length > 0) {
+          return res.send({ msg: config.message.success, data: listImport });
+        } else {
+          return res.status(400).send({ msg: 'Not found!' });
+        }
+      });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send({ msg: config.message.err500 });
+  }
+};
+
+const getHistoryDiscountAccount = async (req, res, next) => {
+  try {
+    const discount = await Discount.find({ _id: req.body.id })
+      .populate('accounts')
+      .exec((err, listImport) => {
+        // console.log(listImport);
+        if (err) {
+          return res.status(500).send({ msg: `error ${err}` });
+        } else if (listImport && listImport.length > 0) {
+          return res.send({ msg: config.message.success, data: listImport });
+        } else {
+          return res.status(400).send({ msg: 'Not found!' });
+        }
+      });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send({ msg: config.message.err500 });
+  }
+};
+
+const getHistory = async (req, res, next) => {
+  try {
+    console.log(req.body.id);
+    const discount = await Discount.find({ _id: req.body.id }).populate('products').populate('accounts').exec();
+
+    if (discount && discount.length > 0) {
+      return res.send({ msg: config.message.success, data: discount });
+    } else {
+      return res.status(400).send({ msg: 'Not found!' });
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send({ msg: config.message.err500 });
+  }
+};
+
 module.exports = {
   Create,
   List,
   Update,
   Read,
   Delete,
-  getADiscount
+  getADiscount,
+  getHistoryDiscountProduct,
+  getHistoryDiscountAccount,
+  getHistory
 };

@@ -51,7 +51,9 @@ supplierSchema.virtual('surface').get(function () {
     desc: this.desc,
     slug: this.slug,
     phone: this.phone,
-    address: this.address
+    address: this.address,
+    createdAt: this.createdAt,
+    updatedAt: this.updatedAt
   };
 });
 /**
