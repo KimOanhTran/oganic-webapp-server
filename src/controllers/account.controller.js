@@ -104,6 +104,7 @@ const UpdatePhone = async (req, res, next) => {
     const phone = req.body.phone;
     const account = req.user;
 
+     console.log("a" +req.user);
     if (account.phone == phone) return responseSuccess({ res, message: 'Thành công !' });
     if (!regex.phone.test(phone))
       return responseError({ res, statusCode: 400, message: config.message.errFormatField + '[Phone]' }); //res.status(400).send({ msg: config.message.errFormatField + '[Phone]. ' });
@@ -237,7 +238,8 @@ const OTPCheck = async (req, res, next) => {
 };
 const OTPRequest = async (req, res, next) => {
   try {
-    var email_or_phone = req.body.username;
+    var email_or_phone = req.body.email;
+    console.log(email_or_phone);
     if (!email_or_phone) return res.status(400).send({ msg: config.message.errMissField + '[Email/Phone]. ' });
     if (codeCache.has(email_or_phone))
       return res.status(400).send({ msg: config.message.errRequest + '. Email/Phone này đang chờ được xác nhận. ' });

@@ -15,26 +15,41 @@ const axios = require('axios');
 
 const Revenue = async (req, res, next) => {
   try {
+    //Lấy thông tin từ request
     var dateStartStr = req.body.dateStart;
     var dateEndStr = req.body.dateEnd;
     var step = req.body.step;
     var type = req.body.type;
-
+    //Xử lý dữ liệu thời gian
+    //khởi tạo biến dateStart với giá trị mặc định là 1/2/1970
     var dateStart = new Date(1970, 1, 1);
+    //khởi tạo dateEnd bằng giá trị hiện tại
     var dateEnd = new Date(Date.now());
 
+    //Nếu dataStartStr và dateEndStr có giá trị thì biến dateStart và dateEnd sẽ được cập nhập thành
+    //các giá trị tương ứng
     if (!!dateEndStr) dateEnd = new Date(dateEndStr);
     if (!!dateStartStr) dateStart = new Date(dateStartStr);
+    //nếu step không hợp lệ và không thuộc danh sách second, day... thì mặc định sẽ là month
     if (!step || !['second', 'day', 'month', 'year'].includes(step)) step = 'month';
+    //dùng điều kiện kiểm tra nếu type không hợp lệ thì type sẽ được cập nhập thành bill
     if (!type || !['bill', 'import'].includes(type)) type = 'bill';
 
+    //dựa vào giá trị của biến step sẽ xác định được số tgian tương ứng
+    //hoặc sẽ bằng 1 nếu không thuộc các trường hợp trên
     var step_time =
       step == 'year' ? config.yearlong : step == 'month' ? config.monthlong : step == 'day' ? config.daylong : 1;
+    //smallest được tính bằng việc trừ giá trị thời gian của dataEnd với step-time
     var smallest = dateEnd.getTime() - step_time;
+    //Nếu dateStart không có giá trị hoặc lớn hơn thì dateStart sẽ được cập nhập thành smallest
+    //để đảm bảo tgian truy vấn nằm trong ghan hợp lệ
     if (!dateStart || dateStart.getTime() > smallest) dateStart = new Date(smallest);
 
     console.log(dateStart, dateEnd);
+    //định nghĩa type cho câu truy vấn là bill hay import
     const tempModel = type == 'bill' ? Bill : Import;
+    //biến option được xác định dụa vào type nếu type là bill thì sẽ thêm điều kiện
+    //đơn hàng phải có trạng thái bằng done
     const option =
       type == 'bill'
         ? {
@@ -51,6 +66,8 @@ const Revenue = async (req, res, next) => {
             }
           };
     //@ts-ignore
+    //Thực hiện truy vấn trong csdl và nhận kq là một mảng các đối tượng "bills"
+    //câu truy vấn dữ liệu lấy danh sách hóa đơn hoặc nhập kho tuy thuộc vào biến opptions
     tempModel.find(option).exec((err, bills) => {
       if (err) return res.status(500).send({ msg: config.message.err500 });
       if (bills.length == 0)
@@ -59,10 +76,15 @@ const Revenue = async (req, res, next) => {
       var counter = {};
       var graph = [];
 
-      var time = bills[0].createdAt;
-      var threshold = time.getTime() + step_time;
+      var time = bills[0].createdAt; //lấy tgian của phần từ đầu tiên trong ds
+      var threshold = time.getTime() + step_time; //tính toán ngưỡng tgian cho mốc tgian tiếp theo
+      //dựa vào tgian của phần từ đầu tiên và step time
+      //khởi tạo một điểm dl để gom nhóm thông tin hóa đơn
       var point = { bills: [], total: 0, time, count: 0 };
+      //duyệt qua danh sách đơn nhập hoặc đơn xuất để gom nhóm dữ liệu
       bills.forEach((b) => {
+        //kiểm tra xem thời gian của đơn có nằm ngoài mốc tgian hiện tại không
+        //nếu có thì lưu thông tin của mốc tgian hiện tại vào graph va tạo một điểm dl mới
         if (b.createdAt.getTime() > threshold) {
           graph.push(point);
           time = b.createdAt;
@@ -88,8 +110,10 @@ const Revenue = async (req, res, next) => {
         point.count += count;
       });
 
+      //nếu tổng doanh thu hiện tại lớn hơn không thì thêm mốc tgian hiện tại vào grap
       if (point.total > 0) graph.push(point);
 
+      //tạo mảng id chứa danh sách các ID sản phẩm trong couter
       var ids = Array.from(Object.keys(counter));
       Product.find({ _id: { $in: ids } })
         .select('name code colors image_url')

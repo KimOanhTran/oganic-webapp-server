@@ -5,6 +5,7 @@ const ApiError = require('../utils/ApiError');
 const config = require('../config/config');
 
 const validate = (schema) => (req, res, next) => {
+  console.log(req);
   const validSchema = pick(schema, ['params', 'query', 'body']);
   const object = pick(req, Object.keys(validSchema));
   const { value, error } = Joi.compile(validSchema)
