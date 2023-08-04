@@ -2,6 +2,7 @@ const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
 const { authService, userService, tokenService, emailService } = require('../services');
 const { responseSuccess } = require('../utils/responseType');
+const config = require('../config/config');
 
 const register = catchAsync(async (req, res) => {
   const user = await userService.createUser(req.body);
@@ -73,17 +74,18 @@ const refreshTokens = catchAsync(async (req, res) => {
 
 const forgotPassword = catchAsync(async (req, res) => {
   //tạo biến tam để lưu token reset và exprise
-  const resetPasswordToken = await tokenService.generateResetPasswordToken(req.body.username);
-  await emailService.sendResetPasswordEmail(req.body.username, resetPasswordToken);
+  const resetPasswordToken = await tokenService.generateResetPasswordToken(req.body.email);
+  await emailService.sendResetPasswordEmail(req.body.email, resetPasswordToken);
   responseSuccess({
     res,
     statusCode: httpStatus.NO_CONTENT,
-    message: '',
+    message: config.message.success,
     data: {}
   });
 });
 
 const resetPassword = catchAsync(async (req, res) => {
+  console.log(req.query);
   await authService.resetPassword(req.query.token, req.body.password);
   responseSuccess({
     res,
