@@ -481,7 +481,7 @@ const ValidCart = async (req, res, next) => {
 
       let colorIndex = doc.colors.findIndex((e) => e.color == unit.color);
       if (colorIndex == -1) {
-        warning += `Sản phẩm ${doc.name} không có màu ${unit.color}. `;
+        // warning += `Sản phẩm ${doc.name} không có màu ${unit.color}. `;
         continue;
       }
 
