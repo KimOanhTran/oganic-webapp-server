@@ -162,8 +162,11 @@ const List = async (req, res, next) => {
       .select(config.product_str)
       .exec((err, docs) => {
         if (err) return responseError({ res, statusCode: 500, message: config.message.errInternal });
+        console.log(docs);
         return responseSuccess({ res, message: config.message.success, data: { data: docs, count } });
       });
+
+    console.log();
   } catch (err) {
     console.log(err);
     return responseError({ res, statusCode: 500, message: config.message.err500 });

@@ -562,7 +562,7 @@ const List = async (req, res, next) => {
     }
     const count = await Bill.countDocuments(queryOptions);
     const result = await Bill.find(queryOptions)
-      .sort(sortOptions)
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .select('-products')
@@ -655,7 +655,8 @@ const VNPay = async (req, res, next) => {
   vnp_Params['vnp_OrderInfo'] = 'Thanh toan bill ' + bill_id;
   vnp_Params['vnp_OrderType'] = 110000;
   vnp_Params['vnp_Amount'] = amount * 100;
-  vnp_Params['vnp_ReturnUrl'] = `${req.protocol}://${req.hostname}/api/bill/vnpay_ipn`;
+  // vnp_Params['vnp_ReturnUrl'] = `${req.protocol}://${req.hostname}/api/bill/vnpay_ipn`;
+  vnp_Params['vnp_ReturnUrl'] = `http://localhost:8000/api/bill/vnpay_ipn`;
   vnp_Params['vnp_IpAddr'] = ipAddr;
   vnp_Params['vnp_CreateDate'] = createDate;
 
@@ -729,7 +730,8 @@ const CheckVNPay = async (req, res, next) => {
             console.log(message);
             message += 'Bạn nhanh chóng liên hệ chuyên viên tư vấn của chúng tôi để được giải quyết nhanh nhất. ';
           } else {
-            res.status(301).redirect(process.env.VNP_RTN_URL + '/thanh-toan/thanh-cong');
+            // res.status(301).redirect(process.env.VNP_RTN_URL + '/thanh-toan/thanh-cong');
+            res.status(301).redirect('http://localhost:3000/thanh-toan/thanh-cong');
             message = 'Bill ' + bill._id + ' thanh toán hoàn tất';
           }
         } else {

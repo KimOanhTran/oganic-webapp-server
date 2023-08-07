@@ -147,7 +147,7 @@ accountSchema.statics.isPhoneTaken = async function (phone, excludeAccountId) {
  */
 accountSchema.methods.isPasswordMatch = async function (password) {
   const account = this;
-  return bcrypt.compare(password, account.password);
+  return await bcrypt.compare(password, account.password);
 };
 
 accountSchema.pre('save', async function (next) {

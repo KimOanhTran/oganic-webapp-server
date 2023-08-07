@@ -12,6 +12,7 @@ const billController = require('../controllers/bill.controller');
 const NodeCache = require('node-cache');
 const sender = require('../services/sender.service');
 const codeCache = new NodeCache();
+const bcrypt = require('bcryptjs');
 
 const {
   Types: { ObjectId: ObjectId }
@@ -104,7 +105,7 @@ const UpdatePhone = async (req, res, next) => {
     const phone = req.body.phone;
     const account = req.user;
 
-     console.log("a" +req.user);
+    console.log('a' + req.user);
     if (account.phone == phone) return responseSuccess({ res, message: 'Thành công !' });
     if (!regex.phone.test(phone))
       return responseError({ res, statusCode: 400, message: config.message.errFormatField + '[Phone]' }); //res.status(400).send({ msg: config.message.errFormatField + '[Phone]. ' });
@@ -145,15 +146,27 @@ const UpdateInfo = async (req, res, next) => {
 };
 const UpdatePassword = async (req, res, next) => {
   try {
-    const password = req.body.password;
+    const oldPassword = req.body.oldPassword;
+    const newPassword = req.body.newPassword;
+    const confirmPassword = req.body.confirmPassword;
     const account = req.user;
-
+    // console.log(account);
     var error = '';
+    // const check = await bcrypt.compare(password, account.password);
+    const checkOldPassword = await bcrypt.compare(oldPassword, account.password);
+    console.log('checkOldPassword =>>' + checkOldPassword);
+    if (checkOldPassword === false) {
+      return res.status(500).send({ msg: 'Mật khẩu cũ không chính xác' });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(500).send({ msg: 'Mật khẩu xác nhận không chính xác' });
+    }
 
-    account.password = password;
-    account.save((err) => {
-      if (err) return res.status(500).send({ msg: config.message.errInternal });
-      return res.send({ msg: config.message.success });
+    account.password = newPassword;
+    console.log(account.password);
+    await account.save((err) => {
+      if (err) return res.status(401).send({ msg: config.message.errInternal });
+      return res.status(200).send({ status: 200, msg: config.message.success });
     });
   } catch (err) {
     console.log(err);
