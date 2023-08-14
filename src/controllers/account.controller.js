@@ -258,6 +258,7 @@ const OTPRequest = async (req, res, next) => {
       return res.status(400).send({ msg: config.message.errRequest + '. Email/Phone này đang chờ được xác nhận. ' });
     if (config.regex.email.test(email_or_phone)) {
       const code = RandomCode();
+      
       const test1 = await sender.SendMail(
         email_or_phone,
         'Xác nhận Email',

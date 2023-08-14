@@ -191,7 +191,7 @@ const Top = async (req, res) => {
 };
 
 const createProduct = catchAsync(async (req, res, next) => {
-  console.log(req);
+  console.log(req.body);
   //Lấy thông tin sản phẩm từ phần thân yêu cầu
   const name = req.body.name;
   const code = req.body.code;

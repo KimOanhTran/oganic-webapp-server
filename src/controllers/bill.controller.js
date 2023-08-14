@@ -12,135 +12,572 @@ const { sortObject, formatDate, isObj, _st } = require('../utils/helpers');
 const querystring = require('qs');
 const crypto = require('crypto');
 const axios = require('axios');
+const { date } = require('joi');
+
+// const Revenue = async (req, res, next) => {
+//   try {
+//     //Lấy thông tin từ request
+//     var dateStartStr = req.body.dateStart;
+//     var dateEndStr = req.body.dateEnd;
+//     var step = req.body.step;
+//     var type = req.body.type;
+//     //Xử lý dữ liệu thời gian
+//     //khởi tạo biến dateStart với giá trị mặc định là 1/2/1970
+//     var dateStart = new Date(1970, 1, 1);
+//     //khởi tạo dateEnd bằng giá trị hiện tại
+//     var dateEnd = new Date(Date.now());
+
+//     //Nếu dataStartStr và dateEndStr có giá trị thì biến dateStart và dateEnd sẽ được cập nhập thành
+//     //các giá trị tương ứng
+//     if (!!dateEndStr) dateEnd = new Date(dateEndStr);
+//     if (!!dateStartStr) dateStart = new Date(dateStartStr);
+//     //nếu step không hợp lệ và không thuộc danh sách second, day... thì mặc định sẽ là month
+//     if (!step || !['second', 'day', 'month', 'year'].includes(step)) step = 'month';
+//     //dùng điều kiện kiểm tra nếu type không hợp lệ thì type sẽ được cập nhập thành bill
+//     if (!type || !['bill', 'import'].includes(type)) type = 'bill';
+
+//     //dựa vào giá trị của biến step sẽ xác định được số tgian tương ứng
+//     //hoặc sẽ bằng 1 nếu không thuộc các trường hợp trên
+//     var step_time =
+//       step == 'year' ? config.yearlong : step == 'month' ? config.monthlong : step == 'day' ? config.daylong : 1;
+//     //smallest được tính bằng việc trừ giá trị thời gian của dataEnd với step-time
+//     var smallest = dateEnd.getTime() - step_time;
+//     //Nếu dateStart không có giá trị hoặc lớn hơn thì dateStart sẽ được cập nhập thành smallest
+//     //để đảm bảo tgian truy vấn nằm trong ghan hợp lệ
+//     if (!dateStart || dateStart.getTime() > smallest) dateStart = new Date(smallest);
+
+//     console.log(dateStart, dateEnd);
+//     //định nghĩa type cho câu truy vấn là bill hay import
+//     const tempModel = type == 'bill' ? Bill : Import;
+//     //biến option được xác định dụa vào type nếu type là bill thì sẽ thêm điều kiện
+//     //đơn hàng phải có trạng thái bằng done
+//     const option =
+//       type == 'bill'
+//         ? {
+//             createdAt: {
+//               $gt: dateStart,
+//               $lt: dateEnd
+//             },
+//             'status.0.statusTimeline': { $in: 'Done' }
+//           }
+//         : {
+//             createdAt: {
+//               $gt: dateStart,
+//               $lt: dateEnd
+//             }
+//           };
+//     var products1 = [];
+//     //@ts-ignore
+//     //Thực hiện truy vấn trong csdl và nhận kq là một mảng các đối tượng "bills"
+//     //câu truy vấn dữ liệu lấy danh sách hóa đơn hoặc nhập kho tuy thuộc vào biến opptions
+//     tempModel.find(option).exec((err, bills) => {
+//       if (err) return res.status(500).send({ msg: config.message.err500 });
+//       if (bills.length == 0)
+//         return responseSuccess({ res, message: config.success, data: { graph: [], products: [] } });
+//       // Gom nhom du lieu
+//       var counter = {};
+//       var graph = [];
+
+//       var time = bills[0].createdAt; //lấy tgian của phần từ đầu tiên trong ds
+//       var threshold = time.getTime() + step_time; //tính toán ngưỡng tgian cho mốc tgian tiếp theo
+//       //dựa vào tgian của phần từ đầu tiên và step time
+//       //khởi tạo một điểm dl để gom nhóm thông tin hóa đơn
+//       var point = { bills: [], total: 0, time, count: 0 };
+//       //duyệt qua danh sách đơn nhập hoặc đơn xuất để gom nhóm dữ liệu
+//       bills.forEach((b) => {
+//         //kiểm tra xem thời gian của đơn có nằm ngoài mốc tgian hiện tại không
+//         //nếu có thì lưu thông tin của mốc tgian hiện tại vào graph va tạo một điểm dl mới
+//         if (b.createdAt.getTime() > threshold) {
+//           graph.push(point);
+//           time = b.createdAt;
+//           threshold = time.getTime() + step_time;
+//           point = { bills: [], total: 0, time, count: 0 };
+//         }
+//         var total = 0;
+//         var count = 0;
+//         b.products.forEach((d) => {
+//           var key = d.product.toString();
+//           var price = d.quantity * d.price;
+//           if (counter.hasOwnProperty(d.product)) {
+//             counter[key].count += d.quantity;
+//             counter[key].total += price;
+//           } else {
+//             counter[key] = { count: d.quantity, total: price };
+//           }
+//           count += d.quantity;
+//           total += price;
+//         });
+//         point.bills.push({ _id: b._id, price: total });
+//         point.total += total;
+//         point.count += count;
+//       });
+
+//       //nếu tổng doanh thu hiện tại lớn hơn không thì thêm mốc tgian hiện tại vào grap
+//       if (point.total > 0) graph.push(point);
+
+//       //tạo mảng id chứa danh sách các ID sản phẩm trong couter
+//       var ids = Array.from(Object.keys(counter));
+//       Product.find({ _id: { $in: ids } })
+//         .select('name code colors image_url')
+//         .exec((err, docs) => {
+//           if (err) return res.send({ msg: config.success, data: { graph } });
+//           // @ts-ignore
+//           // var products = [];
+//           docs.forEach((d) => {
+//             var key = d._id.toString();
+//             products1.push({
+//               _id: d._id,
+//               name: d.name,
+//               code: d.code,
+//               image_url: d.image_url,
+//               quantity: d.colors.reduce((a, b) => a + b.quantity, 0),
+//               sold: counter[key].count,
+//               total: counter[key].total
+//             });
+//           });
+//         });
+//     });
+
+//     /********************************************************************************* */
+//     const tempModel1 = type == 'bill' ? Import : Bill;
+//     const optionTemp =
+//       type == 'bill'
+//         ? {
+//             createdAt: {
+//               $gt: dateStart,
+//               $lt: dateEnd
+//             }
+//           }
+//         : {
+//             createdAt: {
+//               $gt: dateStart,
+//               $lt: dateEnd
+//             },
+//             'status.0.statusTimeline': { $in: 'Done' }
+//           };
+//     tempModel1.find(optionTemp).exec((err, bills) => {
+//       // if (err) return res.status(500).send({ msg: config.message.err500 });
+//       // if (bills.length == 0)
+//       //   return responseSuccess({ res, message: config.success, data: { graph: [], products: [] } });
+//       // Gom nhom du lieu
+//       var counter = {};
+//       var graph = [];
+
+//       var time = bills[0].createdAt; //lấy tgian của phần từ đầu tiên trong ds
+//       var threshold = time.getTime() + step_time; //tính toán ngưỡng tgian cho mốc tgian tiếp theo
+//       //dựa vào tgian của phần từ đầu tiên và step time
+//       //khởi tạo một điểm dl để gom nhóm thông tin hóa đơn
+//       var point = { bills: [], total: 0, time, count: 0 };
+//       //duyệt qua danh sách đơn nhập hoặc đơn xuất để gom nhóm dữ liệu
+//       bills.forEach((b) => {
+//         //kiểm tra xem thời gian của đơn có nằm ngoài mốc tgian hiện tại không
+//         //nếu có thì lưu thông tin của mốc tgian hiện tại vào graph va tạo một điểm dl mới
+//         if (b.createdAt.getTime() > threshold) {
+//           graph.push(point);
+//           time = b.createdAt;
+//           threshold = time.getTime() + step_time;
+//           point = { bills: [], total: 0, time, count: 0 };
+//         }
+//         var total = 0;
+//         var count = 0;
+//         b.products.forEach((d) => {
+//           var key = d.product.toString();
+//           var price = d.quantity * d.price;
+//           if (counter.hasOwnProperty(d.product)) {
+//             counter[key].count += d.quantity;
+//             counter[key].total += price;
+//           } else {
+//             counter[key] = { count: d.quantity, total: price };
+//           }
+//           count += d.quantity;
+//           total += price;
+//         });
+//         point.bills.push({ _id: b._id, price: total });
+//         point.total += total;
+//         point.count += count;
+//       });
+
+//       //nếu tổng doanh thu hiện tại lớn hơn không thì thêm mốc tgian hiện tại vào grap
+//       if (point.total > 0) graph.push(point);
+
+//       //tạo mảng id chứa danh sách các ID sản phẩm trong couter
+//       var ids = Array.from(Object.keys(counter));
+//       Product.find({ _id: { $in: ids } })
+//         .select('name code colors image_url')
+//         .exec((err, docs) => {
+//           // if (err) return res.send({ msg: config.success, data: { graph } });
+//           // @ts-ignore
+//           var temp = [];
+//           docs.forEach((d) => {
+//             var key = d._id.toString();
+//             temp.push({
+//               _id: d._id,
+//               name: d.name,
+//               code: d.code,
+//               image_url: d.image_url,
+//               quantity: d.colors.reduce((a, b) => a + b.quantity, 0),
+//               sold: counter[key].count,
+//               total: counter[key].total
+//             });
+//           });
+//           return responseSuccess({ res, message: config.message.success, data: { graph, products1, temp } });
+//         });
+//     });
+//   } catch (err) {
+//     console.log(err);
+//     return res.status(500).send({ msg: config.message.err500 });
+//   }
+// };
+const processBills = async (model, option, step_time) => {
+  const bills = await model.find(option).exec();
+  console.log('------------------------' + bills);
+
+  const counter = {};
+  const graph = [];
+  let time = bills[0]?.createdAt;
+  let threshold = time?.getTime() + step_time;
+  let point = { bills: [], total: 0, time, count: 0 };
+
+  for (const b of bills) {
+    if (b.createdAt.getTime() > threshold) {
+      graph.push(point);
+      time = b.createdAt;
+      threshold = time.getTime() + step_time;
+      point = { bills: [], total: 0, time, count: 0 };
+    }
+    let total = 0;
+    let count = 0;
+
+    for (const d of b.products) {
+      const key = d.product.toString();
+      // console.log(key);
+      const price = d.quantity * d.price;
+      if (counter[key]) {
+        counter[key].count += d.quantity;
+        counter[key].total += price;
+      } else {
+        counter[key] = { count: d.quantity, total: price };
+      }
+
+      count += d.quantity;
+      total += price;
+    }
+    point.bills.push({ _id: b._id, price: total });
+    point.total += total;
+    point.count += count;
+  }
+
+  if (point.total > 0) {
+    graph.push(point);
+  }
+
+  return { counter, graph };
+};
 
 const Revenue = async (req, res, next) => {
   try {
-    //Lấy thông tin từ request
-    var dateStartStr = req.body.dateStart;
-    var dateEndStr = req.body.dateEnd;
-    var step = req.body.step;
-    var type = req.body.type;
-    //Xử lý dữ liệu thời gian
-    //khởi tạo biến dateStart với giá trị mặc định là 1/2/1970
-    var dateStart = new Date(1970, 1, 1);
-    //khởi tạo dateEnd bằng giá trị hiện tại
-    var dateEnd = new Date(Date.now());
+    const dateStartStr = req.body.dateStart;
+    const dateEndStr = req.body.dateEnd;
+    let step = req.body.step;
+    let type = req.body.type;
+    var listProduct = [];
+    var tempListProduct = [];
 
-    //Nếu dataStartStr và dateEndStr có giá trị thì biến dateStart và dateEnd sẽ được cập nhập thành
-    //các giá trị tương ứng
-    if (!!dateEndStr) dateEnd = new Date(dateEndStr);
-    if (!!dateStartStr) dateStart = new Date(dateStartStr);
-    //nếu step không hợp lệ và không thuộc danh sách second, day... thì mặc định sẽ là month
-    if (!step || !['second', 'day', 'month', 'year'].includes(step)) step = 'month';
-    //dùng điều kiện kiểm tra nếu type không hợp lệ thì type sẽ được cập nhập thành bill
-    if (!type || !['bill', 'import'].includes(type)) type = 'bill';
+    const dateStart = dateStartStr ? new Date(dateStartStr) : new Date(1970, 1, 1);
+    const dateEnd = dateEndStr ? new Date(dateEndStr) : new Date();
 
-    //dựa vào giá trị của biến step sẽ xác định được số tgian tương ứng
-    //hoặc sẽ bằng 1 nếu không thuộc các trường hợp trên
-    var step_time =
-      step == 'year' ? config.yearlong : step == 'month' ? config.monthlong : step == 'day' ? config.daylong : 1;
-    //smallest được tính bằng việc trừ giá trị thời gian của dataEnd với step-time
-    var smallest = dateEnd.getTime() - step_time;
-    //Nếu dateStart không có giá trị hoặc lớn hơn thì dateStart sẽ được cập nhập thành smallest
-    //để đảm bảo tgian truy vấn nằm trong ghan hợp lệ
-    if (!dateStart || dateStart.getTime() > smallest) dateStart = new Date(smallest);
+    step = ['second', 'day', 'month', 'year'].includes(step) ? step : 'month';
+    type = ['bill', 'import'].includes(type) ? type : 'bill';
 
-    console.log(dateStart, dateEnd);
-    //định nghĩa type cho câu truy vấn là bill hay import
-    const tempModel = type == 'bill' ? Bill : Import;
-    //biến option được xác định dụa vào type nếu type là bill thì sẽ thêm điều kiện
-    //đơn hàng phải có trạng thái bằng done
+    const step_time =
+      step === 'year' ? config.yearlong : step === 'month' ? config.monthlong : step === 'day' ? config.daylong : 1;
+
+    const smallest = dateEnd.getTime() - step_time;
+    if (!dateStart || dateStart.getTime() > smallest) {
+      dateStart.setTime(smallest);
+    }
+
+    const tempModel = type === 'bill' ? Bill : Import;
     const option =
-      type == 'bill'
-        ? {
-            createdAt: {
-              $gt: dateStart,
-              $lt: dateEnd
-            },
-            'status.0.statusTimeline': { $in: 'Done' }
-          }
-        : {
-            createdAt: {
-              $gt: dateStart,
-              $lt: dateEnd
-            }
-          };
-    //@ts-ignore
-    //Thực hiện truy vấn trong csdl và nhận kq là một mảng các đối tượng "bills"
-    //câu truy vấn dữ liệu lấy danh sách hóa đơn hoặc nhập kho tuy thuộc vào biến opptions
-    tempModel.find(option).exec((err, bills) => {
-      if (err) return res.status(500).send({ msg: config.message.err500 });
-      if (bills.length == 0)
-        return responseSuccess({ res, message: config.success, data: { graph: [], products: [] } });
-      // Gom nhom du lieu
-      var counter = {};
-      var graph = [];
+      type === 'bill'
+        ? { createdAt: { $gt: dateStart, $lt: dateEnd }, 'status.0.statusTimeline': { $in: ['Done'] } }
+        : { createdAt: { $gt: dateStart, $lt: dateEnd } };
 
-      var time = bills[0].createdAt; //lấy tgian của phần từ đầu tiên trong ds
-      var threshold = time.getTime() + step_time; //tính toán ngưỡng tgian cho mốc tgian tiếp theo
-      //dựa vào tgian của phần từ đầu tiên và step time
-      //khởi tạo một điểm dl để gom nhóm thông tin hóa đơn
-      var point = { bills: [], total: 0, time, count: 0 };
-      //duyệt qua danh sách đơn nhập hoặc đơn xuất để gom nhóm dữ liệu
-      bills.forEach((b) => {
-        //kiểm tra xem thời gian của đơn có nằm ngoài mốc tgian hiện tại không
-        //nếu có thì lưu thông tin của mốc tgian hiện tại vào graph va tạo một điểm dl mới
-        if (b.createdAt.getTime() > threshold) {
-          graph.push(point);
-          time = b.createdAt;
-          threshold = time.getTime() + step_time;
-          point = { bills: [], total: 0, time, count: 0 };
-        }
-        var total = 0;
-        var count = 0;
-        b.products.forEach((d) => {
-          var key = d.product.toString();
-          var price = d.quantity * d.price;
-          if (counter.hasOwnProperty(d.product)) {
-            counter[key].count += d.quantity;
-            counter[key].total += price;
-          } else {
-            counter[key] = { count: d.quantity, total: price };
-          }
-          count += d.quantity;
-          total += price;
-        });
-        point.bills.push({ _id: b._id, price: total });
-        point.total += total;
-        point.count += count;
-      });
+    const { counter: counter1, graph: tempGraph } = await processBills(tempModel, option, step_time);
+    const ids = Array.from(Object.keys(counter1));
+    const docs = await Product.find({ _id: { $in: ids } })
+      .select('name code colors image_url')
+      .exec();
 
-      //nếu tổng doanh thu hiện tại lớn hơn không thì thêm mốc tgian hiện tại vào grap
-      if (point.total > 0) graph.push(point);
+    listProduct = docs.map((d) => {
+      const key = d._id.toString();
+      return {
+        _id: d._id,
+        name: d.name,
+        code: d.code,
+        image_url: d.image_url,
+        quantity: d.colors.reduce((a, b) => a + b.quantity, 0),
+        sold: counter1[key].count,
+        total: counter1[key].total
+      };
+    });
 
-      //tạo mảng id chứa danh sách các ID sản phẩm trong couter
-      var ids = Array.from(Object.keys(counter));
-      Product.find({ _id: { $in: ids } })
-        .select('name code colors image_url')
-        .exec((err, docs) => {
-          if (err) return res.send({ msg: config.success, data: { graph } });
-          // @ts-ignore
-          var products = [];
-          docs.forEach((d) => {
-            var key = d._id.toString();
-            products.push({
-              _id: d._id,
-              name: d.name,
-              code: d.code,
-              image_url: d.image_url,
-              quantity: d.colors.reduce((a, b) => a + b.quantity, 0),
-              sold: counter[key].count,
-              total: counter[key].total
-            });
-          });
-          return responseSuccess({ res, message: config.message.success, data: { graph, products } });
-        });
+    const tempModel1 = type === 'bill' ? Import : Bill;
+    const tempOption =
+      type === 'bill'
+        ? { createdAt: { $gt: dateStart, $lt: dateEnd } }
+        : { createdAt: { $gt: dateStart, $lt: dateEnd }, 'status.0.statusTimeline': { $in: ['Done'] } };
+
+    const { counter: counter2, graph } = await processBills(tempModel1, tempOption, step_time);
+    const tempIds = Array.from(Object.keys(counter2));
+    const tempDocs = await Product.find({ _id: { $in: tempIds } })
+      .select('name code colors image_url')
+      .exec();
+
+    tempListProduct = tempDocs.map((d) => {
+      const key = d._id.toString();
+      return {
+        _id: d._id,
+        name: d.name,
+        code: d.code,
+        image_url: d.image_url,
+        quantity: d.colors.reduce((a, b) => a + b.quantity, 0),
+        sold: counter2[key].count,
+        total: counter2[key].total
+      };
+    });
+
+    return responseSuccess({
+      res,
+      message: config.message.success,
+      data: { tempGraph, listProduct, tempListProduct }
     });
   } catch (err) {
     console.log(err);
     return res.status(500).send({ msg: config.message.err500 });
   }
 };
+
+// const calculateProfitLoss = async (req, res, next) => {
+//   console.log('==================><');
+//   try {
+//     // Lấy thông tin từ request
+//     const dateStartStr = req.body.dateStart;
+//     const dateEndStr = req.body.dateEnd;
+//     let step = req.body.step;
+//     let type = req.body.type;
+
+//     // Xử lý dữ liệu thời gian
+//     const dateStart = new Date(1970, 1, 1); // Khởi tạo dateStart với giá trị mặc định
+//     const dateEnd = new Date(); // Khởi tạo dateEnd với giá trị hiện tại
+
+//     if (!!dateEndStr) dateEnd = new Date(dateEndStr);
+//     if (!!dateStartStr) dateStart = new Date(dateStartStr);
+
+//     // Xử lý step và type
+//     if (!step || !['second', 'day', 'month', 'year'].includes(step)) {
+//       step = 'month'; // Nếu step không hợp lệ, mặc định là month
+//     }
+
+//     if (!type || !['bill', 'import'].includes(type)) {
+//       type = 'bill'; // Nếu type không hợp lệ, mặc định là bill
+//     }
+
+//     // Xác định khoảng thời gian dựa vào step
+//     const step_time =
+//       step === 'year' ? config.yearlong : step === 'month' ? config.monthlong : step === 'day' ? config.daylong : 1;
+
+//     // Tính toán giới hạn thời gian nhỏ nhất (smallest)
+//     const smallest = dateEnd.getTime() - step_time;
+
+//     if (!dateStart || dateStart.getTime() > smallest) {
+//       dateStart = new Date(smallest);
+//     }
+
+//     // Định nghĩa model dựa vào type
+//     const tempModel = type === 'bill' ? Bill : Import;
+
+//     // Xác định option cho truy vấn dữ liệu
+//     const Bills = {
+//       createdAt: {
+//         $gt: dateStart,
+//         $lt: dateEnd
+//       },
+//       'status.0.statusTimeline': { $in: ['Done'] }
+//     };
+
+//     const products = [];
+//     // Thực hiện truy vấn và nhận kết quả là một mảng các đối tượng "bills"
+//     tempModel.find(Bills).exec((err, bills) => {
+//       if (err) {
+//         // return res.status(500).send({ msg: config.message.err500 });
+//       }
+
+//       if (bills.length === 0) {
+//         // return responseSuccess({ res, message: config.success, data: { graph: [], products: [] } });
+//       }
+
+//       // Gom nhóm dữ liệu
+//       const counter = {};
+//       const graph = [];
+
+//       let time = bills[0].createdAt;
+//       const threshold = time.getTime() + step_time;
+//       let point = { bills: [], total: 0, time, count: 0 };
+
+//       bills.forEach((b) => {
+//         if (b.createdAt.getTime() > threshold) {
+//           graph.push(point);
+//           time = b.createdAt;
+//           threshold = time.getTime() + step_time;
+//           point = { bills: [], total: 0, time, count: 0 };
+//         }
+
+//         let total = 0;
+//         let count = 0;
+
+//         b.products.forEach((d) => {
+//           const key = d.product.toString();
+//           const price = d.quantity * d.price;
+
+//           if (counter.hasOwnProperty(d.product)) {
+//             counter[key].count += d.quantity;
+//             counter[key].total += price;
+//           } else {
+//             counter[key] = { count: d.quantity, total: price };
+//           }
+
+//           count += d.quantity;
+//           total += price;
+//         });
+
+//         point.bills.push({ _id: b._id, price: total });
+//         point.total += total;
+//         point.count += count;
+//       });
+
+//       if (point.total > 0) {
+//         graph.push(point);
+//       }
+
+//       const ids = Array.from(Object.keys(counter));
+
+//       Product.find({ _id: { $in: ids } })
+//         .select('name code colors image_url')
+//         .exec((err, docs) => {
+//           if (err) {
+//             // return res.send({ msg: config.success, data: { graph } });
+//           }
+
+//           docs.forEach((d) => {
+//             const key = d._id.toString();
+//             products.push({
+//               _id: d._id,
+//               name: d.name,
+//               code: d.code,
+//               image_url: d.image_url,
+//               quantity: d.colors.reduce((a, b) => a + b.quantity, 0),
+//               sold: counter[key].count,
+//               total: counter[key].total
+//             });
+//           });
+//           console.log('bill\n' + products.data);
+//         });
+//     });
+
+//     /**************************************************** */
+//     const Imports = {
+//       createdAt: {
+//         $gt: dateStart,
+//         $lt: dateEnd
+//       },
+//       'status.0.statusTimeline': { $in: ['Done'] }
+//     };
+//     // Thực hiện truy vấn và nhận kết quả là một mảng các đối tượng "bills"
+//     tempModel.find(Imports).exec((err, bills) => {
+//       if (err) {
+//         // return res.status(500).send({ msg: config.message.err500 });
+//       }
+
+//       if (bills.length === 0) {
+//         // return responseSuccess({ res, message: config.success, data: { graph: [], products: [] } });
+//       }
+
+//       // Gom nhóm dữ liệu
+//       const counter = {};
+//       const graph = [];
+
+//       let time = bills[0].createdAt;
+//       const threshold = time.getTime() + step_time;
+//       let point = { bills: [], total: 0, time, count: 0 };
+
+//       bills.forEach((b) => {
+//         if (b.createdAt.getTime() > threshold) {
+//           graph.push(point);
+//           time = b.createdAt;
+//           threshold = time.getTime() + step_time;
+//           point = { bills: [], total: 0, time, count: 0 };
+//         }
+
+//         let total = 0;
+//         let count = 0;
+
+//         b.products.forEach((d) => {
+//           const key = d.product.toString();
+//           const price = d.quantity * d.price;
+
+//           if (counter.hasOwnProperty(d.product)) {
+//             counter[key].count += d.quantity;
+//             counter[key].total += price;
+//           } else {
+//             counter[key] = { count: d.quantity, total: price };
+//           }
+
+//           count += d.quantity;
+//           total += price;
+//         });
+
+//         point.bills.push({ _id: b._id, price: total });
+//         point.total += total;
+//         point.count += count;
+//       });
+
+//       if (point.total > 0) {
+//         graph.push(point);
+//       }
+
+//       const ids = Array.from(Object.keys(counter));
+
+//       Product.find({ _id: { $in: ids } })
+//         .select('name code colors image_url')
+//         .exec((err, docs) => {
+//           if (err) {
+//             return res.send({ msg: config.success, data: { graph } });
+//           }
+
+//           const imports = [];
+//           docs.forEach((d) => {
+//             const key = d._id.toString();
+//             imports.push({
+//               _id: d._id,
+//               name: d.name,
+//               code: d.code,
+//               image_url: d.image_url,
+//               quantity: d.colors.reduce((a, b) => a + b.quantity, 0),
+//               sold: counter[key].count,
+//               total: counter[key].total
+//             });
+//           });
+
+//           console.log('import\n' + imports);
+//           return responseSuccess({ res, message: config.message.success, data: { graph, imports, products } });
+//         });
+//     });
+//   } catch (err) {
+//     console.log(err);
+//     return res.status(500).send({ msg: config.message.err500 });
+//   }
+// };
 
 const shipCalculate = async (address, weight, value) => {
   var result = { error: '', value: 200000 };
@@ -187,6 +624,8 @@ const discountCalculate = async (code, cartItems, total, ship, account_id = '') 
   // validate
   if (!code) return result;
   const discount = await Discount.findOne({ code });
+
+  console.log(discount);
   if (!discount) {
     result.error += 'Mã discount không tồn tại. ';
     return result;
@@ -197,6 +636,12 @@ const discountCalculate = async (code, cartItems, total, ship, account_id = '') 
   }
   if (discount.is_oic && discount.used.hasOwnProperty(account_id)) {
     result.error += 'Mã discount không thể sử dụng nhiều lần. ';
+    return result;
+  }
+  const currentTimestamp = new Date().getTime();
+  console.log('date', currentTimestamp);
+  if (discount.dateStart > currentTimestamp || discount.dateEnd < currentTimestamp) {
+    result.error += 'Mã discount  ngoài thời gian áp dụng. ';
     return result;
   }
   if (
@@ -217,7 +662,7 @@ const discountCalculate = async (code, cartItems, total, ship, account_id = '') 
     result.error += `Mã discount chỉ áp dụng cho một vài tài khoản. `;
     return result;
   }
-  if (discount.products.length > 0) {
+  if (discount.products.length > 0 && !discount.accounts.includes(account_id)) {
     const item = cartItems.find((e) => !discount.products.includes(e.product));
     if (!!item) {
       result.error += `Mã discount không thể áp dụng cho ${item.name}. `;

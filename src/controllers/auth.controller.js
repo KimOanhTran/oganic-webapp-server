@@ -29,6 +29,7 @@ const registerEmployee = catchAsync(async (req, res) => {
   });
 });
 const login = catchAsync(async (req, res) => {
+  console.log(req.body);
   const username = req.body.username;
   const password = req.body.password;
   const code = req.body.code == '' ? undefined : req.body.code;
@@ -64,7 +65,7 @@ const logout = catchAsync(async (req, res) => {
 });
 
 const refreshTokens = catchAsync(async (req, res) => {
-  const tokens = await authService.refreshAuth(req.body.refreshToken);
+  const tokens = await authService.refreshAuth(req.body.token);
   responseSuccess({
     res,
     statusCode: httpStatus.OK,
