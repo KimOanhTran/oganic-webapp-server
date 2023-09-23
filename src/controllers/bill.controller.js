@@ -744,6 +744,7 @@ const Phoneformat = (phone) => {
 };
 
 const Create = async (req, res, next) => {
+  console.log('create');
   try {
     const discountCode = req.body.discountCode;
     const cartItems = req.body.cartItems;
@@ -849,8 +850,9 @@ const Create = async (req, res, next) => {
       await session.commitTransaction();
       session.endSession();
       if (!!account.email) sender.SendMail(account.email, 'Tạo Đơn Hàng Thành Công', 'Mã đơn: ' + billDoc._id);
-      const newPhone = Phoneformat(phone);
-      sender.SendSMS('Tạo Đơn Hàng Thành Công, Mã đơn: ' + billDoc._id, newPhone);
+      console.log('================> ' + account.email);
+      // const newPhone = Phoneformat(phone);
+      // sender.SendSMS('Tạo Đơn Hàng Thành Công, Mã đơn: ' + billDoc._id, newPhone);
       const ms_sc = 'Tạo Đơn Hàng Thành Công, Mã đơn: ' + billDoc._id;
       await Account.findByIdAndUpdate(bill.account._id.toString(), {
         $push: { notifications: { $each: [{ message: ms_sc }], $position: 0 } }

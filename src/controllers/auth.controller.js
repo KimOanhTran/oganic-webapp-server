@@ -103,7 +103,7 @@ const sendVerificationEmail = catchAsync(async (req, res) => {
   const user = await Account.find({ email: req.body.email });
   console.log('============================');
   console.log(user);
-  const verifyEmailToken = await tokenService.generateVerifyEmailToken(user);
+  const verifyEmailToken = await tokenService.generateVerifyEmailToken(req.user);
   console.log(verifyEmailToken);
   console.log(req.user);
   await emailService.sendVerificationEmail(req.user.email, verifyEmailToken);

@@ -254,11 +254,14 @@ const OTPRequest = async (req, res, next) => {
     var email_or_phone = req.body.email;
     console.log(email_or_phone);
     if (!email_or_phone) return res.status(400).send({ msg: config.message.errMissField + '[Email/Phone]. ' });
-    if (codeCache.has(email_or_phone))
+    if (codeCache.has(email_or_phone)) {
+      console.log('codeChes');
       return res.status(400).send({ msg: config.message.errRequest + '. Email/Phone này đang chờ được xác nhận. ' });
+    }
+
     if (config.regex.email.test(email_or_phone)) {
       const code = RandomCode();
-      
+
       const test1 = await sender.SendMail(
         email_or_phone,
         'Xác nhận Email',
